@@ -27,7 +27,11 @@ async function Navbar() {
 
                 ) : (
                     <>
-
+                        <li>
+                            <Link href="/productos" className="mr-2 px-4 py-2 rounded hover:bg-gray-200 hover:text-gray-800 transition-colors duration-300 ease-in-out">
+                                Productos
+                            </Link>
+                        </li>
                         <li>
                             <Link href="/api/auth/signout" className="px-4 py-2 rounded hover:bg-gray-200 hover:text-gray-800 transition-colors duration-300 ease-in-out">Salir</Link>
                         </li>
