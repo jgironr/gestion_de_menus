@@ -2,7 +2,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { FaCube, FaEdit, FaTrash, FaSearch, FaPlus, FaCheckCircle, FaTimes, FaExclamationTriangle } from 'react-icons/fa';
 
-// Interfaz para tipar los productos
 interface Producto {
   id: number;
   descripcion: string;
@@ -14,33 +13,26 @@ interface Producto {
 }
 
 export default function Home() {
+  const [productos, setProductos] = useState<Producto[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false); // Nuevo modal para añadir
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Producto | null>(null);
   const [notificationMessage, setNotificationMessage] = useState<string | null>(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<number | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const modalRef = useRef<HTMLDivElement>(null);
-  const [currentPage, setCurrentPage] = useState(1); // Página actual
-const productsPerPage = 10; // Número de productos por página
-const [errors, setErrors] = useState<Record<string, string>>({}); // Maneja errores
+  const [currentPage, setCurrentPage] = useState(1);
+  const productsPerPage = 10;
 
-
-  const [productos, setProductos] = useState<Producto[]>([
-    { id: 1, descripcion: 'ACEITE', presentacion: 'botella', categoria: 'ABARROTES', subcategoria: 'ABARROTES', costo: 15.0, unidad: 21.0 },
-    { id: 2, descripcion: 'ACHIOTE', presentacion: 'bolsitas', categoria: 'AGRICULTURA', subcategoria: 'MENSURGES', costo: 4.0, unidad: 5.6 },
-    { id: 3, descripcion: 'AGUACATE', presentacion: 'unidades', categoria: 'AGRICULTURA', subcategoria: 'VERDURAS', costo: 5.0, unidad: 7.0 },
-    { id: 4, descripcion: 'AZUCAR', presentacion: 'libras', categoria: 'ABARROTES', subcategoria: 'ABARROTES', costo: 15.0, unidad: 21.0 },
-    { id: 5, descripcion: 'ARROZ', presentacion: 'libras', categoria: 'AGRICULTURA', subcategoria: 'MENSURGES', costo: 4.0, unidad: 5.6 },
-    { id: 6, descripcion: 'BANANO', presentacion: 'unidades', categoria: 'AGRICULTURA', subcategoria: 'FRUTAS', costo: 5.0, unidad: 7.0 },
-    { id: 7, descripcion: 'CARNE MOLIDA', presentacion: 'libras', categoria: 'AGRICULTURA', subcategoria: 'POLLO Y CARNES', costo: 15.0, unidad: 21.0 },
-    { id: 8, descripcion: 'ESPAGUETTI', presentacion: 'bolsas', categoria: 'ABARROTES', subcategoria: 'ABARROTES', costo: 4.0, unidad: 5.6 },
-    { id: 9, descripcion: 'FRIJOL NEGRO', presentacion: 'libras', categoria: 'AGRICULTURA', subcategoria: 'GRANOS', costo: 5.0, unidad: 7.0 },
-    { id: 10, descripcion: 'HUEVOS', presentacion: 'unidades', categoria: 'ABARROTES', subcategoria: 'ABARROTES', costo: 15.0, unidad: 21.0 },
-    { id: 11, descripcion: 'PAN FRANCÉS', presentacion: 'quetzales', categoria: 'ABARROTES', subcategoria: 'OTROS', costo: 4.0, unidad: 5.6 },
-    { id: 12, descripcion: 'MELON', presentacion: 'unidades', categoria: 'AGRICULTURA', subcategoria: 'VERDURAS', costo: 5.0, unidad: 7.0 },
-  ]);
+ // Obtener productos desde el backend
+  useEffect(() => {
+    fetch('/api/productos')
+      .then((res) => res.json())
+      .then((data) => setProductos(data))
+      .catch((err) => console.error('Error al obtener productos:', err));
+  }, []);
 
   const filteredProducts = productos.filter((producto) => {
   const searchTerms = searchTerm.toLowerCase().split(' ').filter(term => term); 
@@ -50,6 +42,7 @@ const [errors, setErrors] = useState<Record<string, string>>({}); // Maneja erro
       .some(field => field.toLowerCase().includes(term))
   );
 });
+
 
 
   const indexOfLastProduct = currentPage * productsPerPage;
@@ -82,15 +75,25 @@ const openEditModal = (producto: Producto) => {
     setIsConfirmModalOpen(true);
   };
 
-  const confirmDelete = () => {
-    if (productToDelete !== null) {
-      const updatedProductos = productos.filter((producto) => producto.id !== productToDelete);
-      setProductos(updatedProductos);
+  // Eliminar un producto
+  const confirmDelete = async () => {
+    try {
+      await fetch('/api/productos', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: productToDelete }),
+      });
+      setProductos((prev) =>
+        prev.filter((producto) => producto.id !== productToDelete)
+      );
       setProductToDelete(null);
+      setIsConfirmModalOpen(false);
       showNotificationMessage('Producto eliminado con éxito');
+    } catch (error) {
+      console.error('Error al eliminar producto:', error);
     }
-    setIsConfirmModalOpen(false);
   };
+
 
 
   const validateEditFields = () => {
@@ -108,22 +111,31 @@ const openEditModal = (producto: Producto) => {
   };
   
 
-  const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-  
-    if (!validateEditFields()) return; 
-  
-    if (selectedProduct) {
-      const updatedProductos = productos.map((producto) =>
-        producto.id === selectedProduct.id ? selectedProduct : producto
-      );
-  
-      setProductos(updatedProductos);
-      closeEditModal();
-      showNotificationMessage('Producto actualizado con éxito');
-      setErrors({});
-    }
-  };
+ // Actualizar un producto
+ const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  event.preventDefault();
+
+  if (!validateEditFields()) return;
+
+  try {
+    const res = await fetch('/api/productos', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(selectedProduct),
+    });
+    const productoActualizado = await res.json();
+    setProductos((prev) =>
+      prev.map((producto) =>
+        producto.id === productoActualizado.id ? productoActualizado : producto
+      )
+    );
+    closeEditModal();
+    showNotificationMessage('Producto actualizado con éxito');
+  } catch (error) {
+    console.error('Error al actualizar producto:', error);
+  }
+};
+
   
 
   const openAddModal = () => {
@@ -157,17 +169,26 @@ const openEditModal = (producto: Producto) => {
     return Object.keys(errors).length === 0;
   };
 
-  const handleAddProduct = () => {
-    if (!validateFields()) return; 
+ // Añadir un nuevo producto
+ const handleAddProduct = async () => {
+  if (!validateFields()) return;
 
-    if (selectedProduct) {
-      setProductos([...productos, selectedProduct]);
-      setIsAddModalOpen(false);
-      setSelectedProduct(null);
-      showNotificationMessage('Producto añadido con éxito');
-      setErrors({});
-    }
-  };
+  try {
+    const res = await fetch('/api/productos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(selectedProduct),
+    });
+    const nuevoProducto = await res.json();
+    setProductos([...productos, nuevoProducto]);
+    setIsAddModalOpen(false);
+    setSelectedProduct(null);
+    showNotificationMessage('Producto añadido con éxito');
+  } catch (error) {
+    console.error('Error al añadir producto:', error);
+  }
+};
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
   
