@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -31,4 +25,54 @@ model Producto {
   costo         Float
   unidad        Float
   createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relación con MenuProducto y ComplementoProducto
+  menus         MenuProducto[]
+  complementos  ComplementoProducto[]
+}
+
+model Menu {
+  id            Int      @id @default(autoincrement())
+  nombre        String
+  costoTotal    Float
+  gananciaTotal Float
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  productos     MenuProducto[]
+  complementos  Complemento[]
+}
+
+model MenuProducto {
+  id          Int      @id @default(autoincrement())
+  menuId      Int
+  productoId  Int
+  cantidad    Int
+
+  // Relaciones con eliminación en cascada
+  menu        Menu      @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  producto    Producto  @relation(fields: [productoId], references: [id])
+}
+
+model Complemento {
+  id        Int      @id @default(autoincrement())
+  nombre    String
+  menuId    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relación con eliminación en cascada
+  menu       Menu      @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  productos  ComplementoProducto[]
+}
+
+model ComplementoProducto {
+  id            Int      @id @default(autoincrement())
+  complementoId Int
+  productoId    Int
+  cantidad      Int
+
+  // Relaciones
+  complemento   Complemento @relation(fields: [complementoId], references: [id])
+  producto      Producto     @relation(fields: [productoId], references: [id])
 }

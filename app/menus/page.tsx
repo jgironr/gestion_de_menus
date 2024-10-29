@@ -1,16 +1,44 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
+import Select from 'react-select';
+import { Tooltip } from 'react-tooltip';
+import 'react-tooltip/dist/react-tooltip.css'; 
+
 import { FaFolderOpen, FaEdit, FaTrash, FaSearch, FaPlus, FaCheckCircle, FaTimes, FaExclamationTriangle } from 'react-icons/fa';
 
+interface Producto {
+  id: number;
+  descripcion: string;
+  presentacion: string;
+  costo: number;
+  unidad: number; 
+}
+
+interface ProductoSeleccionado extends Producto {
+  cantidad: number;
+  producto?: Producto; 
+}
+
+
 interface Menu {
-    id: number;
-    nombre: string;
-    productos: string[];
-    costoTotal: number;
-  }
-  
+  id: number;
+  nombre: string;
+  productos: ProductoSeleccionado[];
+  complementos: Complemento[];
+  costoTotal: number;
+  gananciaTotal: number;
+}
+
+interface Complemento {
+  id: number;
+  nombre: string;
+  productos: ProductoSeleccionado[]; 
+}
+
+
 
 export default function Menus() {
+  const [productos, setProductos] = useState<Producto[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -19,19 +47,270 @@ export default function Menus() {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [menuToDelete, setMenuToDelete] = useState<number | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
-  const [currentPage, setCurrentPage] = useState(1); 
-const menusPerPage = 5; 
-const [errors, setErrors] = useState<Record<string, string>>({}); 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [menus, setMenus] = useState<Menu[]>([]);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const menusPerPage = 5;
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [selectedMenuDetails, setSelectedMenuDetails] = useState<Menu | null>(null);
+  const [complementos, setComplementos] = useState<Complemento[]>([]);
 
-    const [menus, setMenus] = useState<Menu[]>([
-        { id: 1, nombre: 'Desayuno', productos: ['Pan', 'Café', 'Huevos'], costoTotal: 25.0 },
-        { id: 2, nombre: 'Almuerzo', productos: ['Pollo', 'Arroz', 'Ensalada'], costoTotal: 50.0 },
-        { id: 3, nombre: 'Cena', productos: ['Sopa', 'Pan', 'Té'], costoTotal: 30.0 },
-      ]);
 
-      const filteredMenus = menus.filter((menu) =>
-        menu.nombre.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+  
+  const viewDetails = (menu: Menu) => {
+    console.log("MENU DETAIL");
+    console.log(menu);
+    setSelectedMenuDetails(menu); 
+    setIsDetailsModalOpen(true); 
+  };
+  
+  const closeDetailsModal = () => {
+    setSelectedMenuDetails(null); 
+    setIsDetailsModalOpen(false); 
+  };
+  
+  const agregarProductoAComplemento = (complementoId: number, productoId: number) => {
+    if (!selectedMenu) return;
+  
+    const producto = productos.find((p) => p.id === productoId);
+    if (!producto) return;
+  
+    const complementosActualizados = selectedMenu.complementos.map((complemento) => {
+      if (complemento.id === complementoId) {
+        const productoExistente = complemento.productos.find((p) => p.id === productoId);
+        if (productoExistente) {
+          showNotificationMessage('Este producto ya ha sido añadido al complemento.');
+          return complemento;
+        }
+        return {
+          ...complemento,
+          productos: [...complemento.productos, { ...producto, cantidad: 1 }],
+        };
+      }
+      return complemento;
+    });
+  
+    setSelectedMenu((prev) => ({
+      ...prev!,
+      complementos: complementosActualizados,
+    }));
+  };
+  
+
+  const actualizarCantidadProductoDeComplemento = (complementoId: number, productoId: number, nuevaCantidad: number) => {
+    if (!selectedMenu) return;
+  
+    const complementosActualizados = selectedMenu.complementos.map((complemento) =>{
+      if (complemento.id === complementoId) {
+        const productosActualizados = complemento.productos.map((p)=>{
+          if(p.id === productoId){
+            return {...p, cantidad: nuevaCantidad};
+          }
+          return p;
+        });
+        return {...complemento, productos: productosActualizados}
+      }
+      return complemento;
+    });
+  
+    setSelectedMenu({
+      ...selectedMenu,
+      complementos: complementosActualizados,
+      costoTotal: calcularCostoTotal(),
+      gananciaTotal: calcularGananciaTotal(),
+    });
+    
+  };
+
+
+  const eliminarProductoDeComplemento = (complementoId: number, productoId: number) => {
+    if (!selectedMenu) return;
+  
+    const complementosActualizados = selectedMenu.complementos.map((complemento) => {
+      if (complemento.id === complementoId) {
+        const productosActualizados = complemento.productos.filter((p) => p.id !== productoId);
+        return { ...complemento, productos: productosActualizados };
+      }
+      return complemento;
+    });
+  
+    setSelectedMenu((prev) => ({
+      ...prev!,
+      complementos: complementosActualizados,
+    }));
+  };
+  
+
+
+
+useEffect(() => {
+  const fetchProductos = async () => {
+    try {
+      const res = await fetch('/api/productos');
+      if (!res.ok) throw new Error('Error al obtener productos');
+      const data = await res.json();
+      console.log('Productos desde API:', data); 
+      setProductos(data); 
+    } catch (error) {
+      console.error('Error al obtener productos:', error);
+    }
+  };
+
+  fetchProductos();
+}, []);
+
+
+
+const fetchMenus = async () => {
+  try {
+    const res = await fetch('/api/menus');
+    if (!res.ok) throw new Error('Error al obtener menús');
+    const data = await res.json();
+
+    console.log('Menús recibidos:', data); 
+
+    const formattedData = data.map((menu: Menu) => ({
+  ...menu,
+  productos: (menu.productos || []).map((p) => ({
+    ...p,
+    id: p.id || 0, 
+  })),
+  complementos: (menu.complementos || []).map((complemento) => ({
+    ...complemento,
+    productos: complemento.productos.map((p) => ({
+      ...p,
+      id: p.id || 0,
+    })),
+  })),
+}));
+
+
+    setMenus(formattedData);
+  } catch (error) {
+    console.error('Error al obtener menús:', error);
+  }
+};
+
+useEffect(() => {
+  fetchMenus();
+}, []);
+
+
+
+
+  const agregarProductoAlMenu = (productoId: number) => {
+    const producto = productos.find((p) => p.id === productoId);
+    if (!producto || !selectedMenu) return;
+  
+    const productoExistente = selectedMenu.productos.find((p) => p.id === productoId);
+    if (productoExistente) {
+      showNotificationMessage('Este producto ya ha sido añadido.');
+      return; 
+    }
+  
+    const productoSeleccionado: ProductoSeleccionado = {
+      ...producto,
+      cantidad: 1,
+    };
+  
+    const productosActualizados = [...selectedMenu.productos, productoSeleccionado];
+  
+    setSelectedMenu((prevMenu) => 
+      prevMenu ? {
+        ...prevMenu,
+        productos: [...prevMenu.productos, productoSeleccionado],
+        costoTotal: calcularCostoTotal(),
+        gananciaTotal: calcularGananciaTotal(),
+      } : null
+    );
+    
+    
+  
+    if (errors.productos) {
+      setErrors((prevErrors) => {
+        const { productos, ...rest } = prevErrors;
+        return rest;
+      });
+    }
+  };
+  
+
+
+const actualizarCantidadProducto = (productoId: number, nuevaCantidad: number) => {
+  if (!selectedMenu) return;
+
+  const productosActualizados = selectedMenu.productos.map((p) =>
+    p.id === productoId ? { ...p, cantidad: nuevaCantidad } : p
+  );
+
+  setSelectedMenu({
+    ...selectedMenu,
+    productos: productosActualizados,
+    costoTotal: calcularCostoTotal(),
+    gananciaTotal: calcularGananciaTotal(),
+  });
+  
+};
+
+
+
+const obtenerCosto = (p: any) => p.producto?.costo ?? p.costo ?? 0;
+const obtenerUnidad = (p: any) => p.producto?.unidad ?? p.unidad ?? 0;
+
+const calcularCostoTotal = (): number => {
+  const costoProductos = selectedMenu?.productos?.reduce((total, p) => {
+    const costo = obtenerCosto(p);
+    return total + costo * (p.cantidad ?? 1);
+  }, 0) || 0;
+
+  const costoComplementos = selectedMenu?.complementos?.reduce(
+    (totalComplemento, complemento) =>
+      totalComplemento +
+      complemento.productos.reduce((total, p) => {
+        const costo = obtenerCosto(p);
+        return total + costo * (p.cantidad ?? 1);
+      }, 0),
+    0
+  ) || 0;
+
+  console.log('Costo Total Calculado:', costoProductos + costoComplementos);
+  return costoProductos + costoComplementos;
+};
+
+const calcularVentaTotal = (): number => {
+  const ventaProductos = selectedMenu?.productos?.reduce((total, p) => {
+    const unidad = obtenerUnidad(p);
+    return total + unidad * (p.cantidad ?? 1);
+  }, 0) || 0;
+
+  const ventaComplementos = selectedMenu?.complementos?.reduce(
+    (totalComplemento, complemento) =>
+      totalComplemento +
+      complemento.productos.reduce((total, p) => {
+        const unidad = obtenerUnidad(p);
+        return total + unidad * (p.cantidad ?? 1);
+      }, 0),
+    0
+  ) || 0;
+
+  console.log('Venta Total Calculada:', ventaProductos + ventaComplementos);
+  return ventaProductos + ventaComplementos;
+};
+
+const calcularGananciaTotal = (): number => {
+  const ganancia = calcularVentaTotal() - calcularCostoTotal();
+  console.log('Ganancia Total Calculada:', ganancia);
+  return ganancia;
+};
+
+
+
+
+
+const filteredMenus = menus.filter((menu: Menu) =>
+  menu.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+);
+
 
 
 
@@ -44,6 +323,8 @@ const [errors, setErrors] = useState<Record<string, string>>({});
       const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
     
       const openEditModal = (menu: Menu) => {
+        console.log("EDITAR");
+        console.log(menu);
         setSelectedMenu({ ...menu });
         setErrors({});
         setIsEditModalOpen(true);
@@ -64,15 +345,32 @@ const [errors, setErrors] = useState<Record<string, string>>({});
         setIsConfirmModalOpen(true);
       };
 
-      const confirmDelete = () => {
-        if (menuToDelete !== null) {
+      const confirmDelete = async () => {
+        if (menuToDelete === null) return;
+      
+        try {
+          const res = await fetch(`/api/menus/${menuToDelete}`, {
+            method: 'DELETE',
+          });
+      
+          if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.error || 'Error al eliminar el menú');
+          }
+      
           const updatedMenus = menus.filter((menu) => menu.id !== menuToDelete);
-          setMenus(updatedMenus);
+          setMenus(updatedMenus); 
           setMenuToDelete(null);
           showNotificationMessage('Menú eliminado con éxito');
+        } catch (error) {
+          console.error('Error al eliminar menú:', error);
+          showNotificationMessage('Error al eliminar menú');
+        } finally {
+          setIsConfirmModalOpen(false);
         }
-        setIsConfirmModalOpen(false);
       };
+      
+
 
 
   const validateEditFields = () => {
@@ -80,67 +378,136 @@ const [errors, setErrors] = useState<Record<string, string>>({});
   
     if (!selectedMenu?.nombre) errors.nombre = 'El nombre es obligatorio';
     if (!selectedMenu?.productos) errors.productos = 'debe añadir productos';
-    if (!selectedMenu?.costoTotal) errors.costototal = 'Costo total';
    
     setErrors(errors);
     return Object.keys(errors).length === 0;
   };
   
 
-  const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
   
-    if (!validateEditFields()) return; 
+    if (!validateFields()) return;
   
-    if (selectedMenu) {
-      const updatedProductos = menus.map((menu) =>
-        menu.id === selectedMenu.id ? selectedMenu : menu
+    const menuData = {
+      nombre: selectedMenu?.nombre,
+      productos: selectedMenu?.productos.map((p) => ({
+        id: p.producto?.id || p.id,
+        cantidad: p.cantidad,
+      })),
+      complementos: selectedMenu?.complementos.map((c) => ({
+        id: c.id,
+        nombre: c.nombre || 'Sin nombre', 
+        productos: c.productos.map((p) => ({
+          id: p.producto?.id || p.id,
+          cantidad: p.cantidad,
+        })),
+      })),
+    };
+    
+  
+    console.log('Datos enviados al backend:', JSON.stringify(menuData, null, 2));
+  
+    try {
+      const res = await fetch(`/api/menus/${selectedMenu?.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(menuData),
+      });
+  
+      if (!res.ok) {
+        const errorMessage = await res.text();
+        throw new Error(`Error al actualizar menú: ${errorMessage}`);
+      }
+  
+      const updatedMenu = await res.json();
+      setMenus((prevMenus) =>
+        prevMenus.map((menu) => (menu.id === updatedMenu.id ? updatedMenu : menu))
       );
-  
-      setMenus(updatedProductos);
       closeEditModal();
       showNotificationMessage('Menú actualizado con éxito');
-      setErrors({});
+    } catch (error) {
+      console.error('Error al actualizar menú:', error);
+      showNotificationMessage('Hubo un problema al actualizar el menú.');
     }
   };
   
+  
 
   const openAddModal = () => {
-    setSelectedMenu({ id: menus.length + 1, nombre: '', productos: [], costoTotal: 0 });
+    setSelectedMenu({
+      id: menus.length + 1,
+      nombre: '',
+      productos: [],
+      complementos: [{ id: 1, nombre: 'Complemento 1', productos: [] }], 
+      costoTotal: 0,
+      gananciaTotal: 0,
+    });
     setErrors({});
     setIsAddModalOpen(true);
   };
-
-
- 
+  
 
   const validateFields = () => {
     const errors: Record<string, string> = {};
   
-    if (!selectedMenu?.nombre) errors.nombre = 'El nombre es obligatorio';
-    if (!selectedMenu?.productos) errors.productos = 'debe añadir productos';
-    if (!selectedMenu?.costoTotal) errors.costototal = 'Costo total';
-   
+    if (!selectedMenu?.nombre?.trim()) {
+      errors.nombre = 'El nombre es obligatorio';
+    }
+  
+    if (!selectedMenu || selectedMenu.productos.length === 0) {
+      errors.productos = 'Debe añadir al menos un producto';
+    }
+  
     setErrors(errors);
+  
     return Object.keys(errors).length === 0;
   };
+  
+const handleAddMenu = async () => {
+  if (!selectedMenu) return;
 
-  const handleAddProduct = () => {
-    if (!validateFields()) return; 
+  if (!validateFields()) return;
 
-    if (selectedMenu) {
-      setMenus([...menus, selectedMenu]);
-      setIsAddModalOpen(false);
-      setSelectedMenu(null);
-      showNotificationMessage('Menú añadido con éxito');
-      setErrors({});
-    }
-  };
+  try {
+    console.log("MENU");
+    console.log(selectedMenu);
+    const res = await fetch('/api/menus', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(selectedMenu),
+    });
 
+    console.log("RES");
+    console.log(res);
+
+    if (!res.ok) throw new Error('Error al añadir el menú');
+
+    const newMenu = await res.json();
+    console.log("NEW MENU");
+    console.log(newMenu);
+    fetchMenus();
+    setMenus([...menus, newMenu]); 
+    setIsAddModalOpen(false);
+    setSelectedMenu(null);
+    showNotificationMessage('Menú añadido con éxito');
+  } catch (error) {
+    console.error('Error al añadir menú:', error);
+  }
+};
+
+  
+  
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    
     setSelectedMenu((prev) => (prev ? { ...prev, [name]: value } : null));
-    if (errors[name]) {
+    
+    if (value.trim() && errors[name]) {
       setErrors((prevErrors) => {
         const { [name]: _, ...rest } = prevErrors;
         return rest;
@@ -148,6 +515,30 @@ const [errors, setErrors] = useState<Record<string, string>>({});
     }
   };
   
+  
+  
+  const eliminarProductoDelMenu = (productoId: number) => {
+    if (!selectedMenu) return;
+  
+    const productosActualizados = selectedMenu.productos.filter(
+      (p) => p.id !== productoId
+    );
+  
+    setSelectedMenu({
+      ...selectedMenu,
+      productos: productosActualizados,
+      costoTotal: calcularCostoTotal(),
+      gananciaTotal: calcularGananciaTotal(),
+    });
+    
+  
+    if (productosActualizados.length > 0 && errors.productos) {
+      setErrors((prevErrors) => {
+        const { productos, ...rest } = prevErrors;
+        return rest;
+      });
+    }
+  };
   
 
   
@@ -171,7 +562,7 @@ const [errors, setErrors] = useState<Record<string, string>>({});
             backgroundColor: notificationMessage.includes('eliminado')
               ? 'rgba(31, 41, 55, 0.8)' 
               : 'rgba(31, 41, 55, 0.8)',
-            zIndex: 50,
+            zIndex: 9999,
           }}
         >
           <FaCheckCircle />
@@ -181,8 +572,10 @@ const [errors, setErrors] = useState<Record<string, string>>({});
 
 {isAddModalOpen && (
   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div ref={modalRef} className="bg-white p-10 rounded-lg shadow-lg w-full max-w-3xl">
-      <div className="flex justify-between items-center mb-6">
+    <div
+      ref={modalRef}
+      className="bg-white p-10 rounded-lg shadow-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto"
+    >    <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-orange-500">Añadir Nuevo Menú</h2>
         <button
           onClick={() => setIsAddModalOpen(false)}
@@ -192,9 +585,9 @@ const [errors, setErrors] = useState<Record<string, string>>({});
         </button>
       </div>
 
-      {/* Asegúrate que el form abre y cierra correctamente */}
       <form onSubmit={(e) => e.preventDefault()}>
         <div className="grid grid-cols-2 gap-6">
+          {/* Nombre del Menú */}
           <div>
             <label className="block font-semibold">Nombre</label>
             <input
@@ -202,53 +595,290 @@ const [errors, setErrors] = useState<Record<string, string>>({});
               name="nombre"
               placeholder="Nombre del menú"
               onChange={handleInputChange}
-              className="w-full p-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500"
+              className={`w-full p-2 border rounded-md focus:outline-none focus:ring-1 ${
+                errors.nombre ? 'border-red-500 focus:ring-red-500' : 'focus:ring-orange-500'
+              }`}
             />
             {errors.nombre && (
               <p className="text-red-500 text-sm mt-1">{errors.nombre}</p>
             )}
           </div>
 
+          {/* Selección de Producto */}
           <div>
-            <label className="block font-semibold">Productos</label>
-            <input
-              type="text"
-              name="productos"
-              placeholder="productos para el menú"
-              onChange={handleInputChange}
+            <label className="block font-semibold">Seleccionar Producto</label>
+            <Select
+            options={productos.map((producto) => ({
+              value: producto.id,
+              label: `${producto.descripcion} (Compra: Q${producto.costo} - Reventa: Q${producto.unidad})`,
+            }))}
+            onChange={(option) => option && agregarProductoAlMenu(option.value)}
+            placeholder="Buscar producto..."
+            isSearchable
               className="w-full p-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500"
             />
+            <Tooltip id="selectTooltip" />
             {errors.productos && (
               <p className="text-red-500 text-sm mt-1">{errors.productos}</p>
             )}
           </div>
-
-          <div>
-            <label className="block font-semibold">Costo Total</label>
-            <input
-              type="text"
-              name="costoTotal"
-              placeholder="Costo Total"
-              onChange={handleInputChange}
-              className="w-full p-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500"
-            />
-            {errors.costoTotal && (
-              <p className="text-red-500 text-sm mt-1">{errors.costoTotal}</p>
-            )}
-          </div>
         </div>
 
+        {/* Lista de Productos Seleccionados */}
+        <div className="mt-4">
+  <h3 className="text-lg font-semibold">Productos Seleccionados</h3>
+  {selectedMenu?.productos.map((producto) => (
+    <div
+      key={producto.id}
+      className="flex items-center justify-between mt-2 gap-4 border-b pb-2"
+    >
+      {/* Descripción del producto */}
+      <span className="flex-1">
+        {producto.descripcion} (Compra: Q{producto.costo} - Reventa: Q{producto.unidad}) (x{producto.cantidad})
+      </span>
+
+      {/* entrada de cantidad */}
+      <input
+        type="number"
+        value={producto.cantidad}
+        min="1"
+        onChange={(e) =>
+          actualizarCantidadProducto(producto.id, parseInt(e.target.value))
+        }
+        className="w-16 p-1 border rounded-md text-center"
+      />
+
+      {/* Botón eliminar */}
+      <button
+        onClick={() => eliminarProductoDelMenu(producto.id)}
+        className="text-red-500 hover:text-red-700 transition"
+      >
+        ✖
+      </button>
+    </div>
+  ))}
+</div>
+
+
+        {/* Selección de Complementos */}
+        <div className="mt-6">
+          <h3 className="text-lg font-semibold">Añadir Menú Complemento</h3>
+          {selectedMenu?.complementos.map((complemento) => (
+            <div key={complemento.id} className="mt-4 p-4 border rounded-md">
+              <h5 className="font-bold">{complemento.nombre}</h5>
+
+              {/* Mostrar productos del complemento */}
+              <ul>
+                {complemento.productos.map((producto) => (
+                  <li key={producto.id} className="flex justify-between items-center mt-2">
+                    <span>
+                    {producto.descripcion} (Compra: Q{producto.costo} - Reventa: Q{producto.unidad}) (x{producto.cantidad})
+                    </span>
+                    {/* entrada de cantidad */}
+                    <input
+                      type="number"
+                      value={producto.cantidad}
+                      min="1"
+                      onChange={(e) =>
+                        actualizarCantidadProductoDeComplemento(complemento.id, producto.id, parseInt(e.target.value))
+                      }
+                      className="w-16 p-1 border rounded-md text-center"
+                    />
+                    <button
+                      onClick={() => eliminarProductoDeComplemento(complemento.id, producto.id)}
+                      className="text-red-500 hover:text-red-700 transition"
+                    >
+                      ✖
+                    </button>
+                  </li>
+                ))}
+              </ul>
+
+              {/* Agregar un producto al complemento */}
+              <Select
+              options={productos.map((producto) => ({
+                value: producto.id,
+                label: `${producto.descripcion} (Compra: Q${producto.costo} - Reventa: Q${producto.unidad})`,
+              }))}
+              onChange={(option) =>
+                option ? agregarProductoAComplemento(complemento.id, option.value) : null
+              }
+              placeholder="Agregar producto al complemento..."
+              isSearchable
+              className="w-full mt-2"
+            />
+
+
+            </div>
+          ))}
+        </div>
+
+        {/* Resumen del Menú */}
+        <div className="mt-4">
+          <h3 className="text-lg font-semibold">Resumen del Menú</h3>
+          <p><strong>Costo Total (Compra):</strong> Q{calcularCostoTotal().toFixed(2)}</p>
+          <p><strong>Costo Total (Venta):</strong> Q{calcularVentaTotal().toFixed(2)}</p>
+          <p><strong>Ganancia Total:</strong> Q{calcularGananciaTotal().toFixed(2)}</p>
+        </div>
+
+
+        {/* Botón para Añadir Menú */}
         <button
           type="button"
-          onClick={handleAddProduct}
+          onClick={handleAddMenu}
           className="w-full mt-6 bg-orange-500 text-white p-3 rounded-md hover:bg-orange-600 transition-all duration-300"
         >
           Añadir Menú
         </button>
-      </form> {/* Cierre correcto del form */}
+      </form>
     </div>
   </div>
 )}
+
+
+
+
+
+{isDetailsModalOpen && selectedMenuDetails && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div 
+      ref={modalRef} 
+      className="bg-white p-8 rounded-lg shadow-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto"
+    >
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-800">
+          Detalles del Menú: {selectedMenuDetails.nombre}
+        </h2>
+        <button
+          onClick={closeDetailsModal}
+          className="bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-full p-2 transition"
+        >
+          ✖
+        </button>
+      </div>
+
+     {/* Lista de Productos */}
+<div className="mt-4">
+  <h3 className="text-lg font-semibold">Productos Seleccionados</h3>
+  <ul className="mt-2 space-y-2">
+    {selectedMenuDetails.productos.map((prod) => (
+      <li key={prod.id} className="flex justify-between">
+        <span>
+          {prod.producto?.descripcion || 'Producto desconocido'} 
+          (Compra: Q{prod.producto?.costo || 0} - 
+          Reventa: Q{prod.producto?.unidad || 0}) (x{prod.cantidad})
+        </span>
+        <span>Total: Q{((prod.producto?.unidad || 0) * prod.cantidad).toFixed(2)}</span>
+      </li>
+    ))}
+  </ul>
+</div>
+
+{/* Lista de Complementos */}
+<div className="mt-6">
+  <h3 className="text-lg font-semibold">Complementos</h3>
+  {selectedMenuDetails.complementos.length > 0 ? (
+    selectedMenuDetails.complementos.map((complemento) => (
+      <div key={complemento.id} className="mt-4 p-4 border rounded-md">
+        <h5 className="font-bold mb-2">{complemento.nombre}</h5>
+        <ul className="space-y-2">
+          {complemento.productos.map((p) => (
+            <li key={p.id} className="flex justify-between">
+              <span>
+                {p.producto?.descripcion || 'Producto desconocido'} 
+                (Compra: Q{p.producto?.costo || 0} - 
+                Reventa: Q{p.producto?.unidad || 0}) (x{p.cantidad})
+              </span>
+              <span>Total: Q{((p.producto?.unidad || 0) * p.cantidad).toFixed(2)}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ))
+  ) : (
+    <p className="text-gray-500 italic">No se han agregado complementos.</p>
+  )}
+</div>
+
+
+    {/* Resumen del Menú */}
+<div className="mt-6">
+  <h3 className="text-lg font-semibold">Resumen del Menú</h3>
+
+  <p>
+    <strong>Costo Total (Compra):</strong> Q
+    {(
+      selectedMenuDetails.productos.reduce(
+        (total, p) => total + (p.producto?.costo ?? 0) * p.cantidad,
+        0
+      ) +
+      selectedMenuDetails.complementos.reduce(
+        (totalComplemento, complemento) =>
+          totalComplemento +
+          complemento.productos.reduce(
+            (total, p) => total + (p.producto?.costo ?? 0) * p.cantidad,
+            0
+          ),
+        0
+      )
+    ).toFixed(2)}
+  </p>
+
+  <p>
+    <strong>Costo Total (Venta):</strong> Q
+    {(
+      selectedMenuDetails.productos.reduce(
+        (total, p) => total + (p.producto?.unidad ?? 0) * p.cantidad,
+        0
+      ) +
+      selectedMenuDetails.complementos.reduce(
+        (totalComplemento, complemento) =>
+          totalComplemento +
+          complemento.productos.reduce(
+            (total, p) => total + (p.producto?.unidad ?? 0) * p.cantidad,
+            0
+          ),
+        0
+      )
+    ).toFixed(2)}
+  </p>
+
+  <p>
+    <strong>Ganancia Total:</strong> Q
+    {(
+      selectedMenuDetails.productos.reduce(
+        (total, p) =>
+          total + ((p.producto?.unidad ?? 0) - (p.producto?.costo ?? 0)) * p.cantidad,
+        0
+      ) +
+      selectedMenuDetails.complementos.reduce(
+        (totalComplemento, complemento) =>
+          totalComplemento +
+          complemento.productos.reduce(
+            (total, p) =>
+              total + ((p.producto?.unidad ?? 0) - (p.producto?.costo ?? 0)) * p.cantidad,
+            0
+          ),
+        0
+      )
+    ).toFixed(2)}
+  </p>
+</div>
+
+
+      {/* Botón para cerrar */}
+      <div className="mt-6 flex justify-end">
+        <button
+          onClick={closeDetailsModal}
+          className="bg-orange-500 text-white px-6 py-3 rounded-md hover:bg-orange-600 transition-all duration-300"
+        >
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
 
 
 
@@ -302,38 +932,166 @@ const [errors, setErrors] = useState<Record<string, string>>({});
       </div>
 
       <div className="mt-12 overflow-hidden rounded-xl shadow-lg border border-gray-200">
-        <table className="w-full bg-white rounded-xl">
-          <thead className="bg-orange-500 text-white">
-            <tr>
-              {['Nombre del Menú', 'Productos', 'Costo Total', 
-              'Acciones'].map(
-                (header) => (
-                  <th key={header} className="p-4 text-left text-sm font-bold uppercase tracking-wide border-b border-orange-600">
-                    {header}
-                  </th>
-                )
-              )}
-            </tr>
-          </thead>
-          <tbody>
-          {currentMenus.map((menu) => (
-              <tr key={menu.id} className="border-b hover:shadow-md transition-all">
-                <td className="p-4 text-sm">{menu.nombre}</td>
-                <td className="p-4 text-sm">{menu.productos.join(', ')}</td>
-                <td className="p-4 text-sm">Q {menu.costoTotal.toFixed(2)}</td>
-                <td className="p-4 flex gap-2">
-                  <button onClick={() => openEditModal(menu)} className="text-blue-600">
-                    <FaEdit /> Editar
-                  </button>
-                  <button onClick={() => handleDelete(menu.id)} className="text-red-600">
-                    <FaTrash /> Eliminar
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+  <table className="w-full bg-white rounded-xl">
+    <thead className="bg-orange-500 text-white">
+      <tr>
+        <th className="p-4 text-left text-sm font-bold uppercase tracking-wide border-b border-orange-600">
+          Nombre del Menú
+        </th>
+        <th className="p-4 text-left text-sm font-bold uppercase tracking-wide border-b border-orange-600">
+          Productos y Complementos
+        </th>
+        <th className="p-4 text-left text-sm font-bold uppercase tracking-wide border-b border-orange-600">
+          Costo Total (Compra / Venta)
+        </th>
+        <th className="p-4 text-left text-sm font-bold uppercase tracking-wide border-b border-orange-600">
+          Ganancia Total
+        </th>
+        <th className="p-4 text-left text-sm font-bold uppercase tracking-wide border-b border-orange-600">
+          Acciones
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      {currentMenus.map((menu) => (
+        <tr key={menu.id} className="border-b hover:shadow-md transition-all">
+          <td className="p-4 text-sm">{menu.nombre}</td>
+
+   {/* Columna de Productos y Complementos */}
+<td className="p-4 text-sm">
+  <ul className="list-disc list-inside space-y-2">
+ {/* Renderizado de productos */}
+{menu.productos && menu.productos.length > 0 ? (
+  <>
+    <li className="font-semibold">Productos:</li>
+    {menu.productos.map((p) => {
+      const producto = p.producto || p; 
+      return (
+        <li key={producto.id} className="ml-4">
+          {producto.descripcion} (x{p.cantidad}) - Compra: Q{producto.costo} / Reventa: Q{producto.unidad}
+        </li>
+      );
+    })}
+  </>
+) : (
+  <li className="text-gray-500 italic">Sin productos</li>
+)}
+
+{/* Renderizado de complementos */}
+{menu.complementos && menu.complementos.length > 0 ? (
+  <>
+    <li className="mt-4 font-semibold">Complementos:</li>
+    {menu.complementos.map((complemento) => (
+      <ul key={complemento.id} className="list-circle list-inside ml-6 space-y-1">
+        {complemento.productos.map((p) => {
+          const producto = p.producto || p;
+          return (
+            <li key={producto.id}>
+              {producto.descripcion} (x{p.cantidad || 1}) - Compra: Q{producto.costo} / Reventa: Q{producto.unidad}
+            </li>
+          );
+        })}
+      </ul>
+    ))}
+  </>
+) : (
+  <li className="text-gray-500 italic mt-4">Sin complementos</li>
+)}
+
+  </ul>
+</td>
+
+
+
+      {/* Costo Total (Compra / Venta) */}
+<td className="p-4 text-sm">
+  Q {(
+    (menu.productos || []).reduce((total, p) => {
+      const producto = p.producto || p; 
+      const cantidad = p.cantidad || 1;
+      const costo = producto.costo || 0;
+      return total + costo * cantidad;
+    }, 0) +
+    (menu.complementos || []).reduce((totalComp, complemento) => {
+      return (
+        totalComp +
+        (complemento.productos || []).reduce((total, p) => {
+          const producto = p.producto || p;
+          const cantidad = p.cantidad || 1;
+          const costo = producto.costo || 0;
+          return total + costo * cantidad;
+        }, 0)
+      );
+    }, 0)
+  ).toFixed(2)} / Q{" "}
+  {(
+    (menu.productos || []).reduce((total, p) => {
+      const producto = p.producto || p;
+      const cantidad = p.cantidad || 1;
+      const unidad = producto.unidad || 0;
+      return total + unidad * cantidad;
+    }, 0) +
+    (menu.complementos || []).reduce((totalComp, complemento) => {
+      return (
+        totalComp +
+        (complemento.productos || []).reduce((total, p) => {
+          const producto = p.producto || p;
+          const cantidad = p.cantidad || 1;
+          const unidad = producto.unidad || 0;
+          return total + unidad * cantidad;
+        }, 0)
+      );
+    }, 0)
+  ).toFixed(2)}
+</td>
+
+
+
+{/* Ganancia Total */}
+<td className="p-4 text-sm">
+  Q {(
+    (menu.productos || []).reduce((total, p) => {
+      const producto = p.producto || p; 
+      const cantidad = p.cantidad || 1;
+      const unidad = producto.unidad || 0;
+      const costo = producto.costo || 0;
+      return total + (unidad - costo) * cantidad;
+    }, 0) +
+    (menu.complementos || []).reduce((totalComp, complemento) => {
+      return (
+        totalComp +
+        (complemento.productos || []).reduce((total, p) => {
+          const producto = p.producto || p;
+          const cantidad = p.cantidad || 1;
+          const unidad = producto.unidad || 0;
+          const costo = producto.costo || 0;
+          return total + (unidad - costo) * cantidad;
+        }, 0)
+      );
+    }, 0)
+  ).toFixed(2)}
+</td>
+
+
+          {/* Acciones */}
+          <td className="p-4 flex gap-2">
+            <button onClick={() => openEditModal(menu)} className="text-blue-600">
+              <FaEdit /> Editar
+            </button>
+            <button onClick={() => handleDelete(menu.id)} className="text-red-600">
+              <FaTrash /> Eliminar
+            </button>
+            <button onClick={() => viewDetails(menu)} className="text-gray-800">
+              <FaFolderOpen /> Detalles
+            </button>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+
+
    
       <div className="flex justify-center mt-8 space-x-6">
   {/* Botón Anterior */}
@@ -349,7 +1107,7 @@ const [errors, setErrors] = useState<Record<string, string>>({});
     &lt;
   </button>
 
-  {/* Botones de Página */}
+  {/* Botones de Paginación */}
   {Array.from({ length: totalPages }, (_, index) => (
     <button
       key={index + 1}
@@ -380,13 +1138,15 @@ const [errors, setErrors] = useState<Record<string, string>>({});
 
 
 
-
 {/* Modal de Edición */}
 {isEditModalOpen && selectedMenu && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-    <div ref={modalRef} className="bg-white p-10 rounded-lg shadow-lg w-full max-w-3xl">
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div 
+      ref={modalRef} 
+      className="bg-white p-10 rounded-lg shadow-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto"
+    >
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-600">Editar Menú</h2>
+        <h2 className="text-2xl font-bold text-gray-800">Editar Menú</h2>
         <button
           onClick={closeEditModal}
           className="bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-full p-2 transition"
@@ -394,71 +1154,167 @@ const [errors, setErrors] = useState<Record<string, string>>({});
           ✖
         </button>
       </div>
+
       <form onSubmit={handleFormSubmit}>
-        <div className="grid grid-cols-2 gap-6">
-          {/* Nombre */}
-          <div>
-            <label className="block font-semibold">Nombre</label>
-            <input
-              type="text"
-              name="nombre"
-              value={selectedMenu.nombre}
-              onChange={handleInputChange}
-              className={`w-full p-2 border rounded-md focus:outline-none focus:ring-1 ${
-                errors.nombre ? 'border-red-500 focus:ring-red-500' : 'focus:ring-gray-600'
-              }`}
-            />
-            {errors.nombre && (
-              <p className="text-red-500 text-sm mt-1">{errors.nombre}</p>
-            )}
-          </div>
+  <div className="grid grid-cols-2 gap-6">
+    {/* Campo para el Nombre del Menú */}
+    <div>
+      <label className="block font-semibold">Nombre</label>
+      <input
+        type="text"
+        name="nombre"
+        value={selectedMenu?.nombre || ''} 
+        onChange={handleInputChange}
+        className={`w-full p-2 border rounded-md focus:outline-none focus:ring-1 ${
+          errors.nombre ? 'border-red-500 focus:ring-red-500' : 'focus:ring-gray-600'
+        }`}
+      />
+      {errors.nombre && (
+        <p className="text-red-500 text-sm mt-1">{errors.nombre}</p>
+      )}
+    </div>
 
-          {/* Productos */}
-          <div>
-            <label className="block font-semibold">Productos</label>
-            <input
-              type="text"
-              name="productos"
-              value={selectedMenu.productos}
-              onChange={handleInputChange}
-              className={`w-full p-2 border rounded-md focus:outline-none focus:ring-1 ${
-                errors.productos ? 'border-red-500 focus:ring-red-500' : 'focus:ring-gray-600'
-              }`}
-            />
-            {errors.productos && (
-              <p className="text-red-500 text-sm mt-1">{errors.productos}</p>
-            )}
-          </div>
+    {/* Selección de Productos */}
+    <div>
+      <label className="block font-semibold">Productos</label>
+      <Select
+        options={productos.map((producto) => ({
+          value: producto.id,
+          label: `${producto.descripcion} (Compra: Q${producto.costo} - Reventa: Q${producto.unidad})`,
+        }))}
+        onChange={(option) =>
+          option ? agregarProductoAlMenu(option.value) : null
+        }
+        placeholder="Selecciona un producto..."
+        isSearchable
+        className="w-full p-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-orange-500"
+      />
+      {errors.productos && (
+        <p className="text-red-500 text-sm mt-1">{errors.productos}</p>
+      )}
+    </div>
+  </div>
 
-          {/* Costo Total */}
-          <div>
-            <label className="block font-semibold">Costo Total</label>
-            <input
-              type="text"
-              name="costo total"
-              value={selectedMenu.costoTotal}
-              onChange={handleInputChange}
-              className={`w-full p-2 border rounded-md focus:outline-none focus:ring-1 ${
-                errors.costoTotal ? 'border-red-500 focus:ring-red-500' : 'focus:ring-gray-600'
-              }`}
-            />
-            {errors.costoTotal && (
-              <p className="text-red-500 text-sm mt-1">{errors.costoTotal}</p>
-            )}
-          </div>
-
-          </div>
-
-        <button
-          type="submit"
-          className="w-full mt-6 bg-gray-800 text-white p-3 rounded-md hover:bg-gray-900 transition-all duration-300"
+  {/* Lista de Productos Seleccionados */}
+  <div className="mt-4">
+    <h3 className="text-lg font-semibold">Productos Seleccionados</h3>
+    {selectedMenu?.productos?.length > 0 ? (
+      selectedMenu.productos.map((p) => (
+        <div
+          key={p.id}
+          className="flex justify-between items-center mt-2 gap-2"
         >
-          Actualizar Menú
-        </button>
-      </form>
+        <span>
+        {p.producto?.descripcion || p.descripcion || 'Producto sin descripción'} 
+        (Compra: Q{p.producto?.costo || p.costo} - 
+        Reventa: Q{p.producto?.unidad || p.unidad}) (x{p.cantidad})
+      </span>
+<input
+  type="number"
+  value={p.cantidad}
+  min="1"
+  onChange={(e) => actualizarCantidadProducto(p.id, parseInt(e.target.value))}
+  className="w-16 p-1 border rounded-md"
+/>
+
+          <button
+            onClick={() => eliminarProductoDelMenu(p.id)}
+            className="text-red-500 hover:text-red-700 transition"
+          >
+            ✖
+          </button>
+        </div>
+      ))
+    ) : (
+      <p className="text-gray-500 italic">No hay productos seleccionados</p>
+    )}
+  </div>
+
+  {/* Selección de Complementos */}
+  <div className="mt-6">
+    <h3 className="text-lg font-semibold">Complementos</h3>
+    {selectedMenu?.complementos?.map((complemento) => (
+      <div key={complemento.id} className="mt-4 p-4 border rounded-md">
+        <h5 className="font-bold">{complemento.nombre}</h5>
+        <ul>
+  {complemento.productos.map((p) => {
+    const descripcion = p.producto?.descripcion || p.descripcion || 'Producto no disponible';
+    const costo = p.producto?.costo ?? p.costo ?? 0;
+    const unidad = p.producto?.unidad ?? p.unidad ?? 0;
+
+    return (
+      <li key={p.id} className="flex justify-between items-center mt-2">
+        <span>
+          {descripcion} (Compra: Q{costo} - Reventa: Q{unidad}) (x{p.cantidad})
+        </span>
+        <input
+          type="number"
+          value={p.cantidad}
+          min="1"
+          onChange={(e) =>
+            actualizarCantidadProductoDeComplemento(complemento.id, p.id, parseInt(e.target.value))
+          }
+          className="w-16 p-1 border rounded-md text-center"
+        />
+         <button
+                onClick={() =>
+                  eliminarProductoDeComplemento(complemento.id, p.id)
+                }
+                className="text-red-500 hover:text-red-700 transition"
+              >
+                ✖
+              </button>
+      </li>
+    );
+  })}
+</ul>
+
+        <Select
+          options={productos.map((producto) => ({
+            value: producto.id,
+            label: `${producto.descripcion} (Compra: Q${producto.costo} - Reventa: Q${producto.unidad})`,
+          }))}
+          onChange={(option) =>
+            option ? agregarProductoAComplemento(complemento.id, option.value) : null
+          }
+          placeholder="Agregar producto al complemento..."
+          isSearchable
+          className="w-full mt-2"
+        />
+      </div>
+    ))}
+  </div>
+
+  {/* Resumen del Menú */}
+  <div className="mt-4">
+    <h3 className="text-lg font-semibold">Resumen del Menú</h3>
+    <p>
+      <strong>Costo Total (Compra):</strong> Q
+      {calcularCostoTotal().toFixed(2)}
+    </p>
+    <p>
+      <strong>Costo Total (Venta):</strong> Q
+      {calcularVentaTotal().toFixed(2)}
+    </p>
+    <p>
+      <strong>Ganancia Total:</strong> Q
+      {calcularGananciaTotal().toFixed(2)}
+    </p>
+  </div>
+
+  {/* Botón para Actualizar */}
+  <button
+    type="submit"
+    className="w-full mt-6 bg-gray-800 text-white p-3 rounded-md hover:bg-gray-900 transition-all duration-300"
+  >
+    Actualizar Menú
+  </button>
+</form>
+
     </div>
   </div>
 )}
+
     </div>  
   ); 
 } 
