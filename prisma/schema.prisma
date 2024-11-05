@@ -76,3 +76,15 @@ model ComplementoProducto {
   complemento   Complemento @relation(fields: [complementoId], references: [id])
   producto      Producto     @relation(fields: [productoId], references: [id])
 }
+
+
+
+model Escuela {
+  id          Int      @id @default(autoincrement())
+  nombre      String
+  direccion   String
+  userId   Int      // Relación con user
+  nameUser     String 
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
