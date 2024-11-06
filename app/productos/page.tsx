@@ -34,15 +34,15 @@ export default function Home() {
       .catch((err) => console.error('Error al obtener productos:', err));
   }, []);
 
-  const filteredProducts = productos.filter((producto) => {
-  const searchTerms = searchTerm.toLowerCase().split(' ').filter(term => term); 
-
-  return searchTerms.every(term =>
-    [producto.descripcion, producto.presentacion, producto.categoria, producto.subcategoria]
-      .some(field => field.toLowerCase().includes(term))
-  );
-});
-
+  const filteredProducts = Array.isArray(productos) ? productos.filter((producto) => {
+    const searchTerms = searchTerm.toLowerCase().split(' ').filter(term => term); 
+  
+    return searchTerms.every(term =>
+      [producto.descripcion, producto.presentacion, producto.categoria, producto.subcategoria]
+        .some(field => field && field.toLowerCase().includes(term))
+    );
+  }) : [];
+  
 
 
   const indexOfLastProduct = currentPage * productsPerPage;
