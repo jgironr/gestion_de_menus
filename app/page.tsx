@@ -1,5 +1,7 @@
 "use client";
 import { signOut } from 'next-auth/react';
+import { useState, useRef, useEffect } from 'react';
+import { FaCube, FaEdit, FaTrash, FaSearch, FaPlus, FaCheckCircle, FaTimes, FaExclamationTriangle } from 'react-icons/fa';
 
 function HomePage() {
   const handleClick = () => {
@@ -7,18 +9,17 @@ function HomePage() {
   };
 
   return (
-    <section className="h-screen flex flex-col bg-gray-200 text-gray-800 p-6">
-      {/* Encabezado */}
-      <header className="text-center py-4 border-b border-gray-300">
-        <h1 className="text-4xl font-bold shadow-lg">Menús Escolares</h1>
-      </header>
-
-      {/* Contenedor principal */}
-      <main className="flex-1 flex flex-col items-center p-4">
+    <section className="h-screen flex flex-col bg-gray-200 text-gray-50 p-6">
+       <div className="border-2 border-orange-500 rounded-3xl shadow-lg text-center relative bg-white">
+        <h1 className="text-5xl p-4 font-extrabold text-black flex items-center justify-center gap-3">
+          <FaCube className="text-orange-500 mr-2" /> Gestión de Menús
+        </h1>
+      </div>
+      <main className="flex-1 flex flex-col items-center p-1">
         {/* Tarjetas de estadísticas */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 my-8 w-full max-w-5xl">
           {["Estadística 1", "Estadística 2", "Estadística 3"].map((title, index) => (
-            <div key={index} className="bg-white p-6 rounded-lg text-center shadow-lg transition-transform transform hover:scale-105">
+            <div key={index} className="bg-slate-400 p-6 rounded-lg text-center shadow-lg transition-transform transform hover:scale-105">
               <h2 className="text-xl font-semibold mb-2">{title}</h2>
               <p className="text-3xl">45%</p>
             </div>
@@ -37,12 +38,7 @@ function HomePage() {
             </button>
           ))}
         </div>
-      </main>
-
-      {/* Pie de página */}
-      <footer className="text-center py-4 border-t border-gray-300">
-        <p className="text-gray-600">© 2024 Mi Aplicación</p>
-      </footer>
+      </main>      
     </section>
   );
 }

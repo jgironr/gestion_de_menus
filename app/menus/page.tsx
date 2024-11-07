@@ -554,7 +554,7 @@ const handleAddMenu = async () => {
   }, []);
 
   return (
-    <div className="container mx-auto mt-10 p-8 min-h-screen">
+    <div className="container mx-auto p-4 min-h-screen">
       {notificationMessage && (
         <div
           className="fixed top-5 right-5 text-white p-4 rounded-lg shadow-lg flex items-center gap-2 z-50"
@@ -574,7 +574,7 @@ const handleAddMenu = async () => {
   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
     <div
       ref={modalRef}
-      className="bg-white p-10 rounded-lg shadow-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto"
+      className="bg-white py-4 px-8 rounded-lg shadow-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto"
     >    <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-orange-500">Añadir Nuevo Menú</h2>
         <button
@@ -910,9 +910,9 @@ const handleAddMenu = async () => {
         </div>
       )}
 
-      <div className="p-8 border-2 border-orange-500 rounded-3xl shadow-lg text-center relative bg-white">
+      <div className="p-2 border-2 border-orange-500 rounded-3xl shadow-lg text-center relative bg-white">
         <div className="absolute top-6 right-6">
-        <button onClick={openAddModal} className="bg-orange-500 text-white px-6 py-3 rounded-full">
+        <button onClick={openAddModal} className="bg-orange-500 text-white px-6 py-2 rounded-full">
             <FaPlus className="inline-block mr-2" /> Crear Nuevo Menú
           </button>
         </div>
@@ -920,34 +920,34 @@ const handleAddMenu = async () => {
           < FaFolderOpen className="text-orange-500" /> Gestión de Menús
         </h1>
         <div className="relative max-w-md mx-auto">
-          <FaSearch className="absolute left-4 top-4 text-gray-700" />
+          <FaSearch className="absolute left-4 top-2 text-gray-700" />
           <input
             type="text"
             placeholder="Buscar menús..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 p-3 rounded-full border border-black bg-white text-black placeholder-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 transition"
+            className="w-full pl-12 p-1 rounded-full border border-black bg-white text-black placeholder-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 transition"
           />
         </div>
       </div>
 
-      <div className="mt-12 overflow-hidden rounded-xl shadow-lg border border-gray-200">
+      <div className="mt-3 overflow-hidden rounded-xl shadow-lg border border-gray-200">
   <table className="w-full bg-white rounded-xl">
     <thead className="bg-orange-500 text-white">
       <tr>
-        <th className="p-4 text-left text-sm font-bold uppercase tracking-wide border-b border-orange-600">
+        <th className="p-2 text-left text-sm font-bold uppercase tracking-wide border-b border-orange-600">
           Nombre del Menú
         </th>
-        <th className="p-4 text-left text-sm font-bold uppercase tracking-wide border-b border-orange-600">
+        <th className="p-2 text-left text-sm font-bold uppercase tracking-wide border-b border-orange-600">
           Productos y Complementos
         </th>
-        <th className="p-4 text-left text-sm font-bold uppercase tracking-wide border-b border-orange-600">
+        <th className="p-2 text-left text-sm font-bold uppercase tracking-wide border-b border-orange-600">
           Costo Total (Compra / Venta)
         </th>
-        <th className="p-4 text-left text-sm font-bold uppercase tracking-wide border-b border-orange-600">
+        <th className="p-2 text-left text-sm font-bold uppercase tracking-wide border-b border-orange-600">
           Ganancia Total
         </th>
-        <th className="p-4 text-left text-sm font-bold uppercase tracking-wide border-b border-orange-600">
+        <th className="p-2 text-left text-sm font-bold uppercase tracking-wide border-b border-orange-600">
           Acciones
         </th>
       </tr>
