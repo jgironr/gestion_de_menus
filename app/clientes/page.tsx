@@ -1,9 +1,74 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { signOut } from 'next-auth/react';
 
 function Clientes() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [clientes, setClientes] = useState<any[]>([]);
+  const [nombre, setNombre] = useState('');
+  const [direccion, setDireccion] = useState('');
+  const [selectedCliente, setSelectedCliente] = useState<any>(null);
+
+  // Fetch clients from the server
+  useEffect(() => {
+    const fetchClientes = async () => {
+      const response = await fetch('/api/clientes');
+      const data = await response.json();
+      setClientes(data);
+    };
+
+    fetchClientes();
+  }, []);
+
+  // Handle Add Client
+  const handleAddClient = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const response = await fetch('/api/clientes', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ nombre, direccion }),
+    });
+    const newClient = await response.json();
+    setClientes([...clientes, newClient]);
+    setNombre('');
+    setDireccion('');
+  };
+
+  // Handle Edit Client
+  const handleEditClient = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCliente) return;
+
+    const response = await fetch(`/api/clientes/${selectedCliente.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ nombre, direccion }),
+    });
+    const updatedClient = await response.json();
+    setClientes(clientes.map(client => client.id === updatedClient.id ? updatedClient : client));
+    setSelectedCliente(null);
+    setNombre('');
+    setDireccion('');
+  };
+
+  // Handle Delete Client
+  const handleDeleteClient = async (id: number) => {
+    await fetch(`/api/clientes/${id}`, {
+      method: 'DELETE',
+    });
+    setClientes(clientes.filter(client => client.id !== id));
+  };
+
+  // Prepare edit
+  const prepareEdit = (client: any) => {
+    setSelectedCliente(client);
+    setNombre(client.nombre);
+    setDireccion(client.direccion);
+  };
 
   return (
     <section className="h-[calc(100vh-7rem)] p-6 bg-gray-100">
@@ -11,7 +76,7 @@ function Clientes() {
         <h1 className="text-gray-800 text-5xl font-bold mb-2">Gestión de Clientes</h1>
         <p className="text-gray-600 text-lg mb-6">Administrar escuelas y sus menús semanales</p>
         
-        {/* Search Bar and Add Button */}
+        {/* Search Bar */}
         <div className="flex items-center gap-4 mb-6">
           <input
             type="text"
@@ -20,8 +85,33 @@ function Clientes() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded-md flex-1"
           />
-          <button className="bg-blue-500 text-white px-4 py-2 rounded-md">Añadir Cliente</button>
+          <button className="bg-blue-500 text-white px-4 py-2 rounded-md" onClick={() => {}}>
+            Buscar escuela 
+          </button>
         </div>
+
+        {/* Add/Edit Form */}
+        <form onSubmit={selectedCliente ? handleEditClient : handleAddClient} className="mb-6">
+          <input
+            type="text"
+            placeholder="Nombre de la escuela"
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            required
+            className="px-4 py-2 border border-gray-300 rounded-md mr-4"
+          />
+          <input
+            type="text"
+            placeholder="Dirección"
+            value={direccion}
+            onChange={(e) => setDireccion(e.target.value)}
+            required
+            className="px-4 py-2 border border-gray-300 rounded-md mr-4"
+          />
+          <button type="submit" className="bg-green-500 text-white px-4 py-2 rounded-md">
+            {selectedCliente ? 'Actualizar Cliente' : 'Añadir Cliente'}
+          </button>
+        </form>
 
         {/* Table */}
         <table className="w-full bg-white rounded-md shadow-md">
@@ -33,16 +123,23 @@ function Clientes() {
             </tr>
           </thead>
           <tbody>
-            {/* Example Row - Replace with dynamic data */}
-            <tr className="border-b border-gray-200">
-              <td className="p-4">Escuela Ejemplo</td>
-              <td className="p-4">123 Calle Falsa</td>
-              <td className="p-4 flex gap-2">
-                <button className="bg-yellow-500 text-white px-3 py-1 rounded-md">Editar</button>
-                <button className="bg-green-500 text-white px-3 py-1 rounded-md">Configurar Menú</button>
-                <button className="bg-red-500 text-white px-3 py-1 rounded-md">Eliminar</button>
-              </td>
-            </tr>
+            {clientes.filter(cliente => cliente.nombre.includes(searchTerm)).map((cliente) => (
+              <tr key={cliente.id} className="border-b border-gray-200">
+                <td className="p-4">{cliente.nombre}</td>
+                <td className="p-4">{cliente.direccion}</td>
+                <td className="p-4 flex gap-2">
+                  <button onClick={() => prepareEdit(cliente)} className="bg-yellow-500 text-white px-3 py-1 rounded-md">
+                    Editar
+                  </button>
+                  <button onClick={() => handleDeleteClient(cliente.id)} className="bg-blue-500 text-white px-3 py-1 rounded-md">
+                    Configurar menú semanal
+                  </button>
+                  <button onClick={() => handleDeleteClient(cliente.id)} className="bg-red-500 text-white px-3 py-1 rounded-md">
+                    Eliminar
+                  </button>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
 
