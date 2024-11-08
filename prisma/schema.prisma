@@ -17,41 +17,41 @@ model User {
 }
 
 model Producto {
-  id            Int      @id @default(autoincrement())
-  descripcion   String
-  presentacion  String
-  categoria     String
-  subcategoria  String
-  costo         Float
-  unidad        Float
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id           Int      @id @default(autoincrement())
+  descripcion  String
+  presentacion String
+  categoria    String
+  subcategoria String
+  costo        Float
+  unidad       Float
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   // Relación con MenuProducto y ComplementoProducto
-  menus         MenuProducto[]
-  complementos  ComplementoProducto[]
+  menus        MenuProducto[]
+  complementos ComplementoProducto[]
 }
 
 model Menu {
-  id            Int      @id @default(autoincrement())
+  id            Int            @id @default(autoincrement())
   nombre        String
   costoTotal    Float
   gananciaTotal Float
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
   productos     MenuProducto[]
   complementos  Complemento[]
 }
 
 model MenuProducto {
-  id          Int      @id @default(autoincrement())
-  menuId      Int
-  productoId  Int
-  cantidad    Int
+  id         Int @id @default(autoincrement())
+  menuId     Int
+  productoId Int
+  cantidad   Int
 
   // Relaciones con eliminación en cascada
-  menu        Menu      @relation(fields: [menuId], references: [id], onDelete: Cascade)
-  producto    Producto  @relation(fields: [productoId], references: [id])
+  menu     Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  producto Producto @relation(fields: [productoId], references: [id])
 }
 
 model Complemento {
@@ -62,29 +62,27 @@ model Complemento {
   updatedAt DateTime @updatedAt
 
   // Relación con eliminación en cascada
-  menu       Menu      @relation(fields: [menuId], references: [id], onDelete: Cascade)
-  productos  ComplementoProducto[]
+  menu      Menu                  @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  productos ComplementoProducto[]
 }
 
 model ComplementoProducto {
-  id            Int      @id @default(autoincrement())
+  id            Int @id @default(autoincrement())
   complementoId Int
   productoId    Int
   cantidad      Int
 
   // Relaciones
-  complemento   Complemento @relation(fields: [complementoId], references: [id])
-  producto      Producto     @relation(fields: [productoId], references: [id])
+  complemento Complemento @relation(fields: [complementoId], references: [id])
+  producto    Producto    @relation(fields: [productoId], references: [id])
 }
 
-
-
-model Escuela {
-  id          Int      @id @default(autoincrement())
-  nombre      String
-  direccion   String
-  userId   Int      // Relación con user
-  nameUser     String 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model Cliente {
+  id        Int      @id @default(autoincrement())
+  nombre    String
+  direccion String
+  userId    Int // Relación con user
+  nameUser  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

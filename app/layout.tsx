@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import Navbar from "@/components/Navbar";
+import { getServerSession } from "next-auth/next"; // Importar getServerSession
+import { authOptions } from "@/app/api/auth/[...nextauth]/route"; // Ajusta la ruta según sea necesario
 import "./globals.css";
+import Footer from "@/components/footer";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -19,18 +22,21 @@ export const metadata: Metadata = {
   description: "Sistema para gestionar productos y menús escolares",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await getServerSession(authOptions);
+
   return (
     <html lang="es">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Navbar />
+        <Navbar session={session} />
         <div className="container mx-auto mt-10">{children}</div>
+        <Footer />
       </body>
     </html>
   );

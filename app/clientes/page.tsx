@@ -1,9 +1,10 @@
 "use client";
-import { useState, useEffect } from 'react';
-import { signOut } from 'next-auth/react';
+import { useState, useEffect } from "react";
+import { signOut } from "next-auth/react";
+import { FaCube } from "react-icons/fa";
 
 function Clientes() {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [clientes, setClientes] = useState<any[]>([]);
   const [nombre, setNombre] = useState('');
   const [direccion, setDireccion] = useState('');
@@ -73,10 +74,16 @@ function Clientes() {
   return (
     <section className="h-[calc(100vh-7rem)] p-6 bg-gray-100">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-gray-800 text-5xl font-bold mb-2">Gestión de Clientes</h1>
-        <p className="text-gray-600 text-lg mb-6">Administrar escuelas y sus menús semanales</p>
-        
-        {/* Search Bar */}
+        <div className="border-2 border-orange-500 rounded-3xl shadow-lg text-center relative bg-white">
+          <h1 className="text-3xl p-2 font-extrabold text-black flex items-center justify-center gap-3">
+            <FaCube className="text-orange-500 mr-2" /> Gestión de Escuelas
+          </h1>
+        </div>
+        <p className="text-gray-600 text-lg mb-6">
+          Administrar escuelas y sus menús semanales
+        </p>
+
+        {/* Search Bar and Add Button */}
         <div className="flex items-center gap-4 mb-6">
           <input
             type="text"
