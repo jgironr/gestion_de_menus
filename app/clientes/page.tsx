@@ -1,16 +1,23 @@
 "use client";
-import { useState } from 'react';
-import { signOut } from 'next-auth/react';
+import { useState } from "react";
+import { signOut } from "next-auth/react";
+import { FaCube } from "react-icons/fa";
 
 function Clientes() {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
 
   return (
     <section className="h-[calc(100vh-7rem)] p-6 bg-gray-100">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-gray-800 text-5xl font-bold mb-2">Gestión de Clientes</h1>
-        <p className="text-gray-600 text-lg mb-6">Administrar escuelas y sus menús semanales</p>
-        
+        <div className="border-2 border-orange-500 rounded-3xl shadow-lg text-center relative bg-white">
+          <h1 className="text-3xl p-2 font-extrabold text-black flex items-center justify-center gap-3">
+            <FaCube className="text-orange-500 mr-2" /> Gestión de Escuelas
+          </h1>
+        </div>
+        <p className="text-gray-600 text-lg mb-6">
+          Administrar escuelas y sus menús semanales
+        </p>
+
         {/* Search Bar and Add Button */}
         <div className="flex items-center gap-4 mb-6">
           <input
@@ -20,7 +27,9 @@ function Clientes() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded-md flex-1"
           />
-          <button className="bg-blue-500 text-white px-4 py-2 rounded-md">Añadir Cliente</button>
+          <button className="bg-blue-500 text-white px-4 py-2 rounded-md">
+            Añadir Cliente
+          </button>
         </div>
 
         {/* Table */}
@@ -38,9 +47,15 @@ function Clientes() {
               <td className="p-4">Escuela Ejemplo</td>
               <td className="p-4">123 Calle Falsa</td>
               <td className="p-4 flex gap-2">
-                <button className="bg-yellow-500 text-white px-3 py-1 rounded-md">Editar</button>
-                <button className="bg-green-500 text-white px-3 py-1 rounded-md">Configurar Menú</button>
-                <button className="bg-red-500 text-white px-3 py-1 rounded-md">Eliminar</button>
+                <button className="bg-yellow-500 text-white px-3 py-1 rounded-md">
+                  Editar
+                </button>
+                <button className="bg-green-500 text-white px-3 py-1 rounded-md">
+                  Configurar Menú
+                </button>
+                <button className="bg-red-500 text-white px-3 py-1 rounded-md">
+                  Eliminar
+                </button>
               </td>
             </tr>
           </tbody>

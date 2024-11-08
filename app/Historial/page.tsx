@@ -1,30 +1,30 @@
 "use client";
 import { useState, useEffect } from "react";
-import { signOut } from "next-auth/react";
+import { FaCube } from "react-icons/fa";
 
-function Historial () {
+function Historial() {
   const [priceHistory, setPriceHistory] = useState([
     {
       product: "Producto A",
       oldPrice: "$10.00",
       newPrice: "$12.00",
       date: "2024-10-25",
-      modifiedBy: "usuario1"
+      modifiedBy: "usuario1",
     },
     {
       product: "Producto B",
       oldPrice: "$8.00",
       newPrice: "$9.50",
       date: "2024-10-20",
-      modifiedBy: "usuario2"
+      modifiedBy: "usuario2",
     },
     {
       product: "Producto C",
       oldPrice: "$5.00",
       newPrice: "$5.50",
       date: "2024-10-18",
-      modifiedBy: "usuario3"
-    }
+      modifiedBy: "usuario3",
+    },
   ]);
 
   const handleClick = () => {
@@ -33,10 +33,11 @@ function Historial () {
 
   return (
     <section className="h-screen flex flex-col bg-gray-200 text-gray-800 p-6">
-      {/* Encabezado */}
-      <header className="text-center py-4 border-b border-gray-300">
-        <h1 className="text-4xl font-bold shadow-lg">Menús Escolares</h1>
-      </header>
+      <div className="border-2 border-orange-500 rounded-3xl shadow-lg text-center relative bg-white">
+        <h1 className="text-3xl p-2 font-extrabold text-black flex items-center justify-center gap-3">
+          <FaCube className="text-orange-500 mr-2" /> Historial
+        </h1>
+      </div>
 
       {/* Contenedor principal */}
       <main className="flex-1 flex flex-col items-center p-4">
@@ -68,19 +69,6 @@ function Historial () {
             </table>
           </div>
         </section>
-
-        {/* Botones de acción */}
-        <div className="flex flex-wrap justify-center gap-4">
-          {["Menús", "Clientes", "Reportes", "Otros"].map((text, index) => (
-            <button
-              key={index}
-              onClick={handleClick}
-              className="bg-orange-500 text-white px-6 py-3 rounded-md hover:bg-orange-600 transition transform hover:scale-105"
-            >
-              {text}
-            </button>
-          ))}
-        </div>
       </main>
 
       {/* Pie de página */}
