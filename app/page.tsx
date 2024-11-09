@@ -126,7 +126,9 @@ function HomePage() {
         {/* Tarjetas de estadísticas */}
         <div className="flex flex-wrap justify-center gap-8 my-8 w-full max-w-5xl mx-auto">
           <div className="bg-slate-400 p-6 rounded-lg text-center shadow-lg transition-transform transform hover:scale-105 w-64">
-            <h2 className="text-xl font-semibold mb-2">Total de Productos</h2>
+            <h2 className="text-xl font-semibold mb-2">
+              Total de ingredientes
+            </h2>
             <p className="text-3xl">{productos.length}</p>{" "}
           </div>
 

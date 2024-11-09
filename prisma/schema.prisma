@@ -32,17 +32,6 @@ model Producto {
   complementos ComplementoProducto[]
 }
 
-model Menu {
-  id            Int            @id @default(autoincrement())
-  nombre        String
-  costoTotal    Float
-  gananciaTotal Float
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  productos     MenuProducto[]
-  complementos  Complemento[]
-}
-
 model MenuProducto {
   id         Int @id @default(autoincrement())
   menuId     Int
@@ -81,8 +70,41 @@ model Cliente {
   id        Int      @id @default(autoincrement())
   nombre    String
   direccion String
-  userId    Int // Relación con user
+  telefono  String
+  userEmail String
   nameUser  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Relación: Un cliente tiene varios días asignados
+  dias Dia[]
+}
+
+model Dia {
+  id        Int     @id @default(autoincrement())
+  dia       String // Representa el día, ej. "Lunes", "Martes", etc.
+  clienteId Int // Relación con Cliente
+  cliente   Cliente @relation(fields: [clienteId], references: [id])
+
+  // Relación de muchos a muchos con Menus
+  menus Menu[] @relation("DiaMenu")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Menu {
+  id            Int      @id @default(autoincrement())
+  nombre        String
+  costoTotal    Float
+  gananciaTotal Float
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relación de muchos a muchos con Dia
+  dias Dia[] @relation("DiaMenu")
+
+  // Otras relaciones
+  productos    MenuProducto[]
+  complementos Complemento[]
 }

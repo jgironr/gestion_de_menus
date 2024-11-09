@@ -1,165 +1,310 @@
 "use client";
-import { useState, useEffect } from "react";
-import { signOut } from "next-auth/react";
-import { FaCube } from "react-icons/fa";
+import React, { useState, useEffect } from "react";
+import { Cliente, Menu } from "@prisma/client";
+import {
+  FaCube,
+  FaEdit,
+  FaTrash,
+  FaSearch,
+  FaPlus,
+  FaUser,
+} from "react-icons/fa";
 
-function Clientes() {
+type ClienteWithDias = Cliente & {
+  dias: { id: number; dia: string }[];
+};
+
+export default function Clientes() {
+  const [clientes, setClientes] = useState<ClienteWithDias[]>([]);
+  const [selectedCliente, setSelectedCliente] =
+    useState<ClienteWithDias | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [clientes, setClientes] = useState<any[]>([]);
-  const [nombre, setNombre] = useState('');
-  const [direccion, setDireccion] = useState('');
-  const [selectedCliente, setSelectedCliente] = useState<any>(null);
+  const [isOpenAgregarCliente, setIsOpenAgregarCliente] = useState(false);
+  const [nuevoCliente, setNuevoCliente] = useState({
+    nombre: "",
+    direccion: "",
+    telefono: "",
+  });
 
-  // Fetch clients from the server
+  // Obtener clientes de la API
   useEffect(() => {
     const fetchClientes = async () => {
-      const response = await fetch('/api/clientes');
-      const data = await response.json();
+      const res = await fetch("/api/clientes");
+      const data = await res.json();
       setClientes(data);
     };
 
     fetchClientes();
   }, []);
 
-  // Handle Add Client
-  const handleAddClient = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const response = await fetch('/api/clientes', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ nombre, direccion }),
-    });
-    const newClient = await response.json();
-    setClientes([...clientes, newClient]);
-    setNombre('');
-    setDireccion('');
-  };
-
-  // Handle Edit Client
-  const handleEditClient = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedCliente) return;
-
-    const response = await fetch(`/api/clientes/${selectedCliente.id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ nombre, direccion }),
-    });
-    const updatedClient = await response.json();
-    setClientes(clientes.map(client => client.id === updatedClient.id ? updatedClient : client));
+  const handleAddCliente = () => {
     setSelectedCliente(null);
-    setNombre('');
-    setDireccion('');
+    setNuevoCliente({ nombre: "", direccion: "", telefono: "" });
+    setIsOpenAgregarCliente(true);
   };
 
-  // Handle Delete Client
-  const handleDeleteClient = async (id: number) => {
-    await fetch(`/api/clientes/${id}`, {
-      method: 'DELETE',
+  const handleEditCliente = (cliente: ClienteWithDias) => {
+    setSelectedCliente(cliente);
+    setNuevoCliente({
+      nombre: cliente.nombre,
+      direccion: cliente.direccion,
+      telefono: cliente.telefono,
     });
-    setClientes(clientes.filter(client => client.id !== id));
+    setIsOpenAgregarCliente(true); // Mostrar el modal de edición
   };
 
-  // Prepare edit
-  const prepareEdit = (client: any) => {
-    setSelectedCliente(client);
-    setNombre(client.nombre);
-    setDireccion(client.direccion);
+  const handleSaveCliente = async () => {
+    if (
+      !nuevoCliente.nombre ||
+      !nuevoCliente.direccion ||
+      !nuevoCliente.telefono
+    ) {
+      alert("Todos los campos son obligatorios");
+      return;
+    }
+
+    try {
+      const clienteData = selectedCliente?.id
+        ? { ...nuevoCliente, id: selectedCliente.id }
+        : nuevoCliente;
+
+      const response = await fetch(`/api/clientes`, {
+        method: selectedCliente?.id ? "PATCH" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(clienteData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Error al guardar el cliente:", errorData);
+        alert(`Error: ${errorData.error}`);
+        return;
+      }
+
+      const updatedCliente = await response.json();
+
+      if (selectedCliente?.id) {
+        setClientes((prev) =>
+          prev.map((c) => (c.id === updatedCliente.id ? updatedCliente : c))
+        );
+      } else {
+        setClientes((prev) => [...prev, updatedCliente]);
+      }
+
+      setIsOpenAgregarCliente(false);
+    } catch (error) {
+      console.error("Error en la solicitud:", error);
+      alert("Hubo un error al guardar el cliente");
+    }
+  };
+
+  const handleDeleteCliente = async (id: number) => {
+    try {
+      const response = await fetch(`/api/clientes`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id }),
+      });
+
+      if (response.ok) {
+        setClientes(clientes.filter((cliente) => cliente.id !== id));
+      } else {
+        const errorData = await response.json();
+        console.error("Error al eliminar el cliente:", errorData);
+        alert("Error al eliminar el cliente");
+      }
+    } catch (error) {
+      console.error("Error en la solicitud:", error);
+      alert("Hubo un error al eliminar el cliente");
+    }
   };
 
   return (
-    <section className="h-[calc(100vh-7rem)] p-6 bg-gray-100">
-      <div className="max-w-4xl mx-auto">
-        <div className="border-2 border-orange-500 rounded-3xl shadow-lg text-center relative bg-white">
-          <h1 className="text-3xl p-2 font-extrabold text-black flex items-center justify-center gap-3">
-            <FaCube className="text-orange-500 mr-2" /> Gestión de Escuelas
-          </h1>
+    <div className="container mx-auto p-4 min-h-screen">
+      <div className="p-2 border-2 mb-4 border-orange-500 rounded-3xl shadow-lg text-center relative bg-white">
+        <div className="absolute top-6 right-6">
+          <button
+            onClick={handleAddCliente}
+            className="bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700"
+          >
+            <FaPlus className="inline-block mr-2" /> Añadir Cliente
+          </button>
         </div>
-        <p className="text-gray-600 text-lg mb-6">
-          Administrar escuelas y sus menús semanales
-        </p>
-
-        {/* Search Bar and Add Button */}
-        <div className="flex items-center gap-4 mb-6">
+        <h1 className="text-4xl font-extrabold text-black mb-4 flex items-center justify-center gap-3">
+          <FaUser className="text-orange-500" /> Clientes
+        </h1>
+        <div className="relative max-w-md mx-auto">
+          <FaSearch className="absolute left-4 top-2 text-gray-700" />
           <input
             type="text"
-            placeholder="Buscar escuela"
+            placeholder="Buscar clientes..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-md flex-1"
+            className="w-full pl-12 p-1 rounded-full border border-black bg-white text-black placeholder-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 transition"
           />
-          <button className="bg-blue-500 text-white px-4 py-2 rounded-md" onClick={() => {}}>
-            Buscar escuela 
-          </button>
         </div>
+      </div>
 
-        {/* Add/Edit Form */}
-        <form onSubmit={selectedCliente ? handleEditClient : handleAddClient} className="mb-6">
-          <input
-            type="text"
-            placeholder="Nombre de la escuela"
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-            required
-            className="px-4 py-2 border border-gray-300 rounded-md mr-4"
-          />
-          <input
-            type="text"
-            placeholder="Dirección"
-            value={direccion}
-            onChange={(e) => setDireccion(e.target.value)}
-            required
-            className="px-4 py-2 border border-gray-300 rounded-md mr-4"
-          />
-          <button type="submit" className="bg-green-500 text-white px-4 py-2 rounded-md">
-            {selectedCliente ? 'Actualizar Cliente' : 'Añadir Cliente'}
-          </button>
-        </form>
+      {/* Modal Agregar Cliente */}
+      {isOpenAgregarCliente && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-50 flex justify-center items-center z-50">
+          <div className="bg-white rounded-lg w-96 p-6 shadow-lg">
+            <h2 className="text-2xl font-semibold text-gray-800">
+              {selectedCliente ? "Editar Cliente" : "Agregar Cliente"}
+            </h2>
+            <form
+              className="mt-4"
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSaveCliente();
+              }}
+            >
+              <div className="mb-4">
+                <label htmlFor="nombre" className="block text-sm text-gray-700">
+                  Nombre
+                </label>
+                <input
+                  type="text"
+                  id="nombre"
+                  value={nuevoCliente.nombre}
+                  onChange={(e) =>
+                    setNuevoCliente({ ...nuevoCliente, nombre: e.target.value })
+                  }
+                  className="w-full p-2 mt-1 border border-gray-300 rounded-md"
+                  required
+                />
+              </div>
+              <div className="mb-4">
+                <label
+                  htmlFor="direccion"
+                  className="block text-sm text-gray-700"
+                >
+                  Dirección
+                </label>
+                <input
+                  type="text"
+                  id="direccion"
+                  value={nuevoCliente.direccion}
+                  onChange={(e) =>
+                    setNuevoCliente({
+                      ...nuevoCliente,
+                      direccion: e.target.value,
+                    })
+                  }
+                  className="w-full p-2 mt-1 border border-gray-300 rounded-md"
+                  required
+                />
+              </div>
+              <div className="mb-4">
+                <label
+                  htmlFor="telefono"
+                  className="block text-sm text-gray-700"
+                >
+                  Teléfono
+                </label>
+                <input
+                  type="text"
+                  id="telefono"
+                  value={nuevoCliente.telefono}
+                  onChange={(e) =>
+                    setNuevoCliente({
+                      ...nuevoCliente,
+                      telefono: e.target.value,
+                    })
+                  }
+                  className="w-full p-2 mt-1 border border-gray-300 rounded-md"
+                  required
+                />
+              </div>
+              <div className="flex justify-end gap-4">
+                <button
+                  type="button"
+                  onClick={() => setIsOpenAgregarCliente(false)}
+                  className="bg-gray-400 text-white px-4 py-2 rounded-md"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="bg-blue-600 text-white px-4 py-2 rounded-md"
+                >
+                  Guardar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
-        {/* Table */}
-        <table className="w-full bg-white rounded-md shadow-md">
-          <thead>
-            <tr className="bg-gray-200">
-              <th className="text-left p-4">Nombre</th>
-              <th className="text-left p-4">Dirección</th>
-              <th className="text-left p-4">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {clientes.filter(cliente => cliente.nombre.includes(searchTerm)).map((cliente) => (
-              <tr key={cliente.id} className="border-b border-gray-200">
-                <td className="p-4">{cliente.nombre}</td>
-                <td className="p-4">{cliente.direccion}</td>
-                <td className="p-4 flex gap-2">
-                  <button onClick={() => prepareEdit(cliente)} className="bg-yellow-500 text-white px-3 py-1 rounded-md">
-                    Editar
+      {/* Tabla de clientes */}
+      <table className="w-full bg-white rounded-xl shadow-lg border border-gray-200 mb-6">
+        <thead className="bg-orange-500 text-white">
+          <tr>
+            <th className="p-2 text-left text-sm font-bold uppercase tracking-wide border-b border-orange-600">
+              Nombre
+            </th>
+            <th className="p-2 text-left text-sm font-bold uppercase tracking-wide border-b border-orange-600">
+              Dirección
+            </th>
+            <th className="p-2 text-left text-sm font-bold uppercase tracking-wide border-b border-orange-600">
+              Teléfono
+            </th>
+            <th className="p-2 text-left text-sm font-bold uppercase tracking-wide border-b border-orange-600">
+              Días
+            </th>
+            <th className="p-2 text-left text-sm font-bold uppercase tracking-wide border-b border-orange-600">
+              Acciones
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {clientes
+            .filter((cliente) =>
+              cliente.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+            )
+            .map((cliente) => (
+              <tr
+                key={cliente.id}
+                className="border-b hover:shadow-md transition-all duration-300 ease-in-out"
+              >
+                <td className="p-4 text-sm text-gray-800 font-medium">
+                  {cliente.nombre}
+                </td>
+                <td className="p-4 text-sm text-gray-800">
+                  {cliente.direccion}
+                </td>
+                <td className="p-4 text-sm text-gray-800">
+                  {cliente.telefono}
+                </td>
+                <td className="p-4 text-sm text-gray-800">
+                  {cliente.dias &&
+                  Array.isArray(cliente.dias) &&
+                  cliente.dias.length > 0
+                    ? cliente.dias.map((dia) => dia.dia).join(", ")
+                    : "Sin días asignados"}
+                </td>
+                <td className="p-4 text-sm text-gray-800">
+                  <button
+                    onClick={() => handleEditCliente(cliente)}
+                    className="bg-yellow-600 text-white px-4 py-2 rounded-md hover:bg-yellow-700 mr-2"
+                  >
+                    <FaEdit />
                   </button>
-                  <button onClick={() => handleDeleteClient(cliente.id)} className="bg-blue-500 text-white px-3 py-1 rounded-md">
-                    Configurar menú semanal
-                  </button>
-                  <button onClick={() => handleDeleteClient(cliente.id)} className="bg-red-500 text-white px-3 py-1 rounded-md">
-                    Eliminar
+                  <button
+                    onClick={() => handleDeleteCliente(cliente.id)}
+                    className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
+                  >
+                    <FaTrash />
                   </button>
                 </td>
               </tr>
             ))}
-          </tbody>
-        </table>
-
-        {/* Logout Button */}
-        <button
-          className="bg-gray-800 text-white px-4 py-2 rounded-md mt-8"
-          onClick={() => signOut()}
-        >
-          Logout
-        </button>
-      </div>
-    </section>
+        </tbody>
+      </table>
+    </div>
   );
 }
-
-export default Clientes;
