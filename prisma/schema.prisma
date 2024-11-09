@@ -27,9 +27,23 @@ model Producto {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  // Relación con MenuProducto y ComplementoProducto
   menus        MenuProducto[]
   complementos ComplementoProducto[]
+
+  historial HistorialProducto[]
+}
+
+model HistorialProducto {
+  id                    Int      @id @default(autoincrement())
+  productoId            Int
+  producto              Producto @relation(fields: [productoId], references: [id])
+  precioCostoAnterior   Float?
+  precioCostoNuevo      Float?
+  precioPublicoAnterior Float?
+  precioPublicoNuevo    Float?
+  cambio                String
+  usuario               String
+  fechaCambio           DateTime @default(now())
 }
 
 model MenuProducto {
@@ -38,7 +52,6 @@ model MenuProducto {
   productoId Int
   cantidad   Int
 
-  // Relaciones con eliminación en cascada
   menu     Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
   producto Producto @relation(fields: [productoId], references: [id])
 }
@@ -50,7 +63,6 @@ model Complemento {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relación con eliminación en cascada
   menu      Menu                  @relation(fields: [menuId], references: [id], onDelete: Cascade)
   productos ComplementoProducto[]
 }
@@ -61,7 +73,6 @@ model ComplementoProducto {
   productoId    Int
   cantidad      Int
 
-  // Relaciones
   complemento Complemento @relation(fields: [complementoId], references: [id])
   producto    Producto    @relation(fields: [productoId], references: [id])
 }
@@ -76,17 +87,15 @@ model Cliente {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relación: Un cliente tiene varios días asignados
   dias Dia[]
 }
 
 model Dia {
   id        Int     @id @default(autoincrement())
-  dia       String // Representa el día, ej. "Lunes", "Martes", etc.
-  clienteId Int // Relación con Cliente
+  dia       String
+  clienteId Int
   cliente   Cliente @relation(fields: [clienteId], references: [id])
 
-  // Relación de muchos a muchos con Menus
   menus Menu[] @relation("DiaMenu")
 
   createdAt DateTime @default(now())
@@ -101,22 +110,20 @@ model Menu {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  // Relación de muchos a muchos con Dia
   dias Dia[] @relation("DiaMenu")
 
-  // Otras relaciones
   productos    MenuProducto[]
   complementos Complemento[]
 }
 
 model Factura {
-  id                Int      @id @default(autoincrement())
+  id                   Int      @id @default(autoincrement())
   cantidadIngredientes Int
-  costoTotalCompra  Float
-  costoTotalVenta   Float
-  gananciaTotal     Float
-  escuela           String  
-  escuelaId         Int
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  costoTotalCompra     Float
+  costoTotalVenta      Float
+  gananciaTotal        Float
+  escuela              String
+  escuelaId            Int
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 }

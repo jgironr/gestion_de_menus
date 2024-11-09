@@ -5,10 +5,8 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-// Crear un cliente
 export async function POST(request: NextRequest) {
   try {
-    // Obtener la sesión y validar autenticación
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
@@ -16,7 +14,6 @@ export async function POST(request: NextRequest) {
 
     const { nombre, direccion, telefono } = await request.json();
 
-    // Validación de datos de entrada
     if (!nombre || !direccion || !telefono) {
       return NextResponse.json(
         { error: "Todos los campos son obligatorios" },
@@ -24,14 +21,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Crear el cliente en la base de datos
+    const daysOfWeek = [
+      "Lunes",
+      "Martes",
+      "Miércoles",
+      "Jueves",
+      "Viernes",
+      "Sábado",
+      "Domingo",
+    ];
+
     const cliente = await prisma.cliente.create({
       data: {
         nombre,
         direccion,
         telefono,
-        userEmail: session.user.email ? session.user.email : "",
-        nameUser: session.user.name ? session.user.name : "",
+        userEmail: session.user.email || "",
+        nameUser: session.user.name || "",
+        dias: {
+          create: daysOfWeek.map((dia) => ({ dia })),
+        },
+      },
+      include: {
+        dias: {
+          include: {
+            menus: true,
+          },
+        },
       },
     });
 
@@ -45,13 +61,15 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Obtener todos los clientes
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // Obtener lista de todos los clientes
     const clientes = await prisma.cliente.findMany({
       include: {
-        dias: true, // Incluye días relacionados si existen en la base de datos
+        dias: {
+          include: {
+            menus: true,
+          },
+        },
       },
     });
     return NextResponse.json(clientes);
@@ -64,20 +82,15 @@ export async function GET() {
   }
 }
 
-// Actualizar un cliente
-// Actualizar un cliente
 export async function PATCH(request: NextRequest) {
   try {
-    // Obtener la sesión y validar autenticación
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    // Obtener los datos del cliente a partir del cuerpo de la solicitud
     const { id, nombre, direccion, telefono } = await request.json();
 
-    // Validación de datos de entrada
     if (!id || !nombre || !direccion || !telefono) {
       return NextResponse.json(
         { error: "Todos los campos son obligatorios" },
@@ -85,7 +98,6 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // Actualizar el cliente en la base de datos
     const cliente = await prisma.cliente.update({
       where: { id },
       data: {
@@ -95,9 +107,15 @@ export async function PATCH(request: NextRequest) {
         userEmail: session.user.email || "",
         nameUser: session.user.name || "",
       },
+      include: {
+        dias: {
+          include: {
+            menus: true,
+          },
+        },
+      },
     });
 
-    // Retornar la respuesta con el cliente actualizado
     return NextResponse.json(cliente);
   } catch (error) {
     console.error("Error al actualizar el cliente:", error);
@@ -108,12 +126,10 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
-// Eliminar un cliente
 export async function DELETE(request: NextRequest) {
   try {
     const { id } = await request.json();
 
-    // Validación de datos de entrada
     if (!id) {
       return NextResponse.json(
         { error: "El id es obligatorio" },
@@ -121,7 +137,6 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Eliminar el cliente de la base de datos
     await prisma.cliente.delete({
       where: { id },
     });

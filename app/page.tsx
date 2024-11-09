@@ -158,7 +158,7 @@ function HomePage() {
               className="rounded-md pb-2"
             />
             <button className="bg-orange-500 text-white w-full py-3 rounded-md hover:bg-orange-600 transition transform hover:scale-105">
-              Productos
+              Ingredientes
             </button>
           </Link>
 
@@ -176,7 +176,7 @@ function HomePage() {
               className="rounded-md pb-2"
             />
             <button className="bg-orange-500 text-white w-full py-3 rounded-md hover:bg-orange-600 transition transform hover:scale-105 mt-4">
-              Menú
+              Menús
             </button>
           </Link>
 
@@ -199,7 +199,7 @@ function HomePage() {
           </Link>
 
           <Link
-            href="/facturas"
+            href="/facturacion"
             className="bg-white shadow-md rounded-lg p-6 w-48 h-60 block"
           >
             <Image

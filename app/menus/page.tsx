@@ -645,7 +645,6 @@ export default function Menus() {
                 </div>
               </div>
 
-              {/* Lista de Productos Seleccionados */}
               <div className="mt-4">
                 <h3 className="text-lg font-semibold">
                   Productos Seleccionados
@@ -655,13 +654,11 @@ export default function Menus() {
                     key={producto.id}
                     className="flex items-center justify-between mt-2 gap-4 border-b pb-2"
                   >
-                    {/* Descripción del producto */}
                     <span className="flex-1">
                       {producto.descripcion} (Compra: Q{producto.costo} -
                       Reventa: Q{producto.unidad}) (x{producto.cantidad})
                     </span>
 
-                    {/* entrada de cantidad */}
                     <input
                       type="number"
                       value={producto.cantidad}
@@ -675,7 +672,6 @@ export default function Menus() {
                       className="w-16 p-1 border rounded-md text-center"
                     />
 
-                    {/* Botón eliminar */}
                     <button
                       onClick={() => eliminarProductoDelMenu(producto.id)}
                       className="text-red-500 hover:text-red-700 transition"
@@ -686,7 +682,6 @@ export default function Menus() {
                 ))}
               </div>
 
-              {/* Selección de Complementos */}
               <div className="mt-6">
                 <h3 className="text-lg font-semibold">
                   Añadir Menú Complemento
@@ -698,7 +693,6 @@ export default function Menus() {
                   >
                     <h5 className="font-bold">{complemento.nombre}</h5>
 
-                    {/* Mostrar productos del complemento */}
                     <ul>
                       {complemento.productos.map((producto) => (
                         <li
@@ -709,7 +703,6 @@ export default function Menus() {
                             {producto.descripcion} (Compra: Q{producto.costo} -
                             Reventa: Q{producto.unidad}) (x{producto.cantidad})
                           </span>
-                          {/* entrada de cantidad */}
                           <input
                             type="number"
                             value={producto.cantidad}
@@ -738,7 +731,6 @@ export default function Menus() {
                       ))}
                     </ul>
 
-                    {/* Agregar un producto al complemento */}
                     <Select
                       options={productos.map((producto) => ({
                         value: producto.id,
@@ -760,7 +752,6 @@ export default function Menus() {
                 ))}
               </div>
 
-              {/* Resumen del Menú */}
               <div className="mt-4">
                 <h3 className="text-lg font-semibold">Resumen del Menú</h3>
                 <p>
@@ -777,7 +768,6 @@ export default function Menus() {
                 </p>
               </div>
 
-              {/* Botón para Añadir Menú */}
               <button
                 type="button"
                 onClick={handleAddMenu}
@@ -808,7 +798,6 @@ export default function Menus() {
               </button>
             </div>
 
-            {/* Lista de Productos */}
             <div className="mt-4">
               <h3 className="text-lg font-semibold">Productos Seleccionados</h3>
               <ul className="mt-2 space-y-2">
@@ -830,7 +819,6 @@ export default function Menus() {
               </ul>
             </div>
 
-            {/* Lista de Complementos */}
             <div className="mt-6">
               <h3 className="text-lg font-semibold">Complementos</h3>
               {selectedMenuDetails.complementos.length > 0 ? (
@@ -866,7 +854,6 @@ export default function Menus() {
               )}
             </div>
 
-            {/* Resumen del Menú */}
             <div className="mt-6">
               <h3 className="text-lg font-semibold">Resumen del Menú</h3>
 
@@ -938,7 +925,6 @@ export default function Menus() {
               </p>
             </div>
 
-            {/* Botón para cerrar */}
             <div className="mt-6 flex justify-end">
               <button
                 onClick={closeDetailsModal}
@@ -1032,10 +1018,8 @@ export default function Menus() {
               >
                 <td className="p-4 text-sm">{menu.nombre}</td>
 
-                {/* Columna de Productos y Complementos */}
                 <td className="p-4 text-sm">
                   <ul className="list-disc list-inside space-y-2">
-                    {/* Renderizado de productos */}
                     {menu.productos && menu.productos.length > 0 ? (
                       <>
                         <li className="font-semibold">Productos:</li>
@@ -1053,7 +1037,6 @@ export default function Menus() {
                       <li className="text-gray-500 italic">Sin productos</li>
                     )}
 
-                    {/* Renderizado de complementos */}
                     {menu.complementos && menu.complementos.length > 0 ? (
                       <>
                         <li className="mt-4 font-semibold">Complementos:</li>
@@ -1083,7 +1066,6 @@ export default function Menus() {
                   </ul>
                 </td>
 
-                {/* Costo Total (Compra / Venta) */}
                 <td className="p-4 text-sm">
                   Q{" "}
                   {(
@@ -1133,7 +1115,6 @@ export default function Menus() {
                   ).toFixed(2)}
                 </td>
 
-                {/* Ganancia Total */}
                 <td className="p-4 text-sm">
                   Q{" "}
                   {(
@@ -1162,7 +1143,6 @@ export default function Menus() {
                   ).toFixed(2)}
                 </td>
 
-                {/* Acciones */}
                 <td className="p-4 flex gap-2">
                   <button
                     onClick={() => openEditModal(menu)}
@@ -1190,7 +1170,6 @@ export default function Menus() {
       </div>
 
       <div className="flex justify-center mt-8 space-x-6">
-        {/* Botón Anterior */}
         <button
           disabled={currentPage === 1}
           onClick={() => paginate(currentPage - 1)}
@@ -1203,7 +1182,6 @@ export default function Menus() {
           &lt;
         </button>
 
-        {/* Botones de Paginación */}
         {Array.from({ length: totalPages }, (_, index) => (
           <button
             key={index + 1}
@@ -1218,7 +1196,6 @@ export default function Menus() {
           </button>
         ))}
 
-        {/* Botón Siguiente */}
         <button
           disabled={currentPage === totalPages}
           onClick={() => paginate(currentPage + 1)}
@@ -1232,7 +1209,6 @@ export default function Menus() {
         </button>
       </div>
 
-      {/* Modal de Edición */}
       {isEditModalOpen && selectedMenu && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div
@@ -1251,7 +1227,6 @@ export default function Menus() {
 
             <form onSubmit={handleFormSubmit}>
               <div className="grid grid-cols-2 gap-6">
-                {/* Campo para el Nombre del Menú */}
                 <div>
                   <label className="block font-semibold">Nombre</label>
                   <input
@@ -1270,7 +1245,6 @@ export default function Menus() {
                   )}
                 </div>
 
-                {/* Selección de Productos */}
                 <div>
                   <label className="block font-semibold">Productos</label>
                   <Select
@@ -1293,7 +1267,6 @@ export default function Menus() {
                 </div>
               </div>
 
-              {/* Lista de Productos Seleccionados */}
               <div className="mt-4">
                 <h3 className="text-lg font-semibold">
                   Productos Seleccionados
@@ -1339,7 +1312,6 @@ export default function Menus() {
                 )}
               </div>
 
-              {/* Selección de Complementos */}
               <div className="mt-6">
                 <h3 className="text-lg font-semibold">Complementos</h3>
                 {selectedMenu?.complementos?.map((complemento) => (
@@ -1416,7 +1388,6 @@ export default function Menus() {
                 ))}
               </div>
 
-              {/* Resumen del Menú */}
               <div className="mt-4">
                 <h3 className="text-lg font-semibold">Resumen del Menú</h3>
                 <p>
@@ -1433,7 +1404,6 @@ export default function Menus() {
                 </p>
               </div>
 
-              {/* Botón para Actualizar */}
               <button
                 type="submit"
                 className="w-full mt-6 bg-gray-800 text-white p-3 rounded-md hover:bg-gray-900 transition-all duration-300"

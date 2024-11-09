@@ -37,7 +37,6 @@ export default function Home() {
   const [currentPage, setCurrentPage] = useState(1);
   const productsPerPage = 10;
 
-  // Obtener productos desde el backend
   useEffect(() => {
     fetch("/api/productos")
       .then((res) => res.json())
@@ -95,7 +94,6 @@ export default function Home() {
     setIsConfirmModalOpen(true);
   };
 
-  // Eliminar un producto
   const confirmDelete = async () => {
     try {
       await fetch("/api/productos", {
@@ -134,7 +132,6 @@ export default function Home() {
     return Object.keys(errors).length === 0;
   };
 
-  // Actualizar un producto
   const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -195,7 +192,6 @@ export default function Home() {
     return Object.keys(errors).length === 0;
   };
 
-  // Añadir un nuevo producto
   const handleAddProduct = async () => {
     if (!validateFields()) return;
 
@@ -509,7 +505,6 @@ export default function Home() {
       </div>
 
       <div className="flex justify-center mt-8 space-x-6">
-        {/* Botón Anterior */}
         <button
           disabled={currentPage === 1}
           onClick={() => paginate(currentPage - 1)}
@@ -522,7 +517,6 @@ export default function Home() {
           &lt;
         </button>
 
-        {/* Botones de Página */}
         {Array.from({ length: totalPages }, (_, index) => (
           <button
             key={index + 1}
@@ -537,7 +531,6 @@ export default function Home() {
           </button>
         ))}
 
-        {/* Botón Siguiente */}
         <button
           disabled={currentPage === totalPages}
           onClick={() => paginate(currentPage + 1)}
@@ -551,7 +544,6 @@ export default function Home() {
         </button>
       </div>
 
-      {/* Modal de Edición */}
       {isEditModalOpen && selectedProduct && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div
@@ -571,7 +563,6 @@ export default function Home() {
             </div>
             <form onSubmit={handleFormSubmit}>
               <div className="grid grid-cols-2 gap-6">
-                {/* Descripción */}
                 <div>
                   <label className="block font-semibold">Descripción</label>
                   <input
@@ -592,7 +583,6 @@ export default function Home() {
                   )}
                 </div>
 
-                {/* Presentación */}
                 <div>
                   <label className="block font-semibold">Presentación</label>
                   <input
@@ -613,7 +603,6 @@ export default function Home() {
                   )}
                 </div>
 
-                {/* Categoría */}
                 <div>
                   <label className="block font-semibold">Categoría</label>
                   <input
@@ -634,7 +623,6 @@ export default function Home() {
                   )}
                 </div>
 
-                {/* Subcategoría */}
                 <div>
                   <label className="block font-semibold">Subcategoría</label>
                   <input
@@ -655,7 +643,6 @@ export default function Home() {
                   )}
                 </div>
 
-                {/* Precio Costo */}
                 <div>
                   <label className="block font-semibold">Precio Costo</label>
                   <input
@@ -674,7 +661,6 @@ export default function Home() {
                   )}
                 </div>
 
-                {/* Precio Unidad */}
                 <div>
                   <label className="block font-semibold">Precio Unidad</label>
                   <input

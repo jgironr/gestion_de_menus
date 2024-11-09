@@ -1,17 +1,12 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Cliente, Menu } from "@prisma/client";
-import {
-  FaCube,
-  FaEdit,
-  FaTrash,
-  FaSearch,
-  FaPlus,
-  FaUser,
-} from "react-icons/fa";
+import { Cliente, Menu, Dia } from "@prisma/client";
+import { FaEdit, FaTrash, FaSearch, FaPlus, FaUser } from "react-icons/fa";
 
 type ClienteWithDias = Cliente & {
-  dias: { id: number; dia: string }[];
+  dias: (Dia & {
+    menus: Menu[];
+  })[];
 };
 
 export default function Clientes() {
@@ -20,13 +15,18 @@ export default function Clientes() {
     useState<ClienteWithDias | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isOpenAgregarCliente, setIsOpenAgregarCliente] = useState(false);
+  const [isOpenDetalle, setIsOpenDetalle] = useState(false);
+  const [menus, setMenus] = useState<Menu[]>([]);
+  const [diasConMenus, setDiasConMenus] = useState<
+    { diaId: number; diaNombre: string; menuId: number | null }[]
+  >([]);
   const [nuevoCliente, setNuevoCliente] = useState({
     nombre: "",
     direccion: "",
     telefono: "",
   });
 
-  // Obtener clientes de la API
+  // Obtener clientes y menús de la API
   useEffect(() => {
     const fetchClientes = async () => {
       const res = await fetch("/api/clientes");
@@ -34,7 +34,14 @@ export default function Clientes() {
       setClientes(data);
     };
 
+    const fetchMenus = async () => {
+      const res = await fetch("/api/menus");
+      const data = await res.json();
+      setMenus(data);
+    };
+
     fetchClientes();
+    fetchMenus();
   }, []);
 
   const handleAddCliente = () => {
@@ -50,7 +57,20 @@ export default function Clientes() {
       direccion: cliente.direccion,
       telefono: cliente.telefono,
     });
-    setIsOpenAgregarCliente(true); // Mostrar el modal de edición
+    setIsOpenAgregarCliente(true);
+  };
+
+  const handleShowDetalles = (cliente: ClienteWithDias) => {
+    setSelectedCliente(cliente);
+
+    const diasMenus = cliente.dias.map((dia) => ({
+      diaId: dia.id,
+      diaNombre: dia.dia,
+      menuId: dia.menus.length > 0 ? dia.menus[0].id : null,
+    }));
+
+    setDiasConMenus(diasMenus);
+    setIsOpenDetalle(true);
   };
 
   const handleSaveCliente = async () => {
@@ -78,7 +98,6 @@ export default function Clientes() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("Error al guardar el cliente:", errorData);
         alert(`Error: ${errorData.error}`);
         return;
       }
@@ -114,12 +133,39 @@ export default function Clientes() {
         setClientes(clientes.filter((cliente) => cliente.id !== id));
       } else {
         const errorData = await response.json();
-        console.error("Error al eliminar el cliente:", errorData);
         alert("Error al eliminar el cliente");
       }
     } catch (error) {
       console.error("Error en la solicitud:", error);
       alert("Hubo un error al eliminar el cliente");
+    }
+  };
+
+  const handleSaveDiasMenus = async () => {
+    try {
+      await fetch(`/api/clientes/${selectedCliente?.id}/dias-menus`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ diasConMenus }),
+      });
+      setIsOpenDetalle(false);
+
+      // Actualizar el cliente en la lista para reflejar los cambios
+      const updatedClienteRes = await fetch(
+        `/api/clientes/${selectedCliente?.id}`
+      );
+      if (!updatedClienteRes.ok) {
+        throw new Error("Error al obtener el cliente actualizado");
+      }
+      const updatedCliente = await updatedClienteRes.json();
+      setClientes((prev) =>
+        prev.map((c) => (c.id === updatedCliente.id ? updatedCliente : c))
+      );
+    } catch (error) {
+      console.error("Error al guardar los menús:", error);
+      alert("Hubo un error al guardar los menús");
     }
   };
 
@@ -240,6 +286,63 @@ export default function Clientes() {
         </div>
       )}
 
+      {/* Modal Detalles del Cliente */}
+      {isOpenDetalle && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-50 flex justify-center items-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-lg p-6 shadow-lg">
+            <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+              Detalles de {selectedCliente?.nombre}
+            </h2>
+            {diasConMenus.length > 0 ? (
+              diasConMenus.map((diaMenu, index) => (
+                <div key={index} className="mb-4">
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">
+                    {diaMenu.diaNombre}
+                  </label>
+                  <select
+                    value={diaMenu.menuId || ""}
+                    onChange={(e) => {
+                      const updatedDias = [...diasConMenus];
+                      updatedDias[index].menuId =
+                        parseInt(e.target.value, 10) || null;
+                      setDiasConMenus(updatedDias);
+                    }}
+                    className="w-full p-2 mt-1 border border-gray-300 rounded-md"
+                  >
+                    <option value="">Seleccionar menú</option>
+                    {menus.map((menu) => (
+                      <option key={menu.id} value={menu.id}>
+                        {menu.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-600">
+                No hay días asignados a este cliente.
+              </p>
+            )}
+            <div className="flex justify-end gap-4 mt-6">
+              <button
+                type="button"
+                onClick={() => setIsOpenDetalle(false)}
+                className="bg-gray-400 text-white px-4 py-2 rounded-md hover:bg-gray-500"
+              >
+                Cerrar
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveDiasMenus}
+                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+              >
+                Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Tabla de clientes */}
       <table className="w-full bg-white rounded-xl shadow-lg border border-gray-200 mb-6">
         <thead className="bg-orange-500 text-white">
@@ -293,6 +396,12 @@ export default function Clientes() {
                     className="bg-yellow-600 text-white px-4 py-2 rounded-md hover:bg-yellow-700 mr-2"
                   >
                     <FaEdit />
+                  </button>
+                  <button
+                    onClick={() => handleShowDetalles(cliente)}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 mr-2"
+                  >
+                    Detalles
                   </button>
                   <button
                     onClick={() => handleDeleteCliente(cliente.id)}
