@@ -1,7 +1,7 @@
 "use client"; // Marca este archivo como Client Component
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';  // Cambié la importación aquí
+import { useRouter } from 'next/navigation';
 
 interface Factura {
   id: number;
@@ -18,15 +18,13 @@ export default function FacturacionPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Función para obtener los datos de facturación
     const fetchFacturas = async () => {
       const response = await fetch('/api/facturacion');
       const data = await response.json();
-      
-      // Asegúrate de que data es un array antes de setearlo en el estado
+
       if (Array.isArray(data)) {
         setFacturas(data);
-        setFilteredFacturas(data);  // Asume que la respuesta es un array
+        setFilteredFacturas(data);
       } else {
         console.error('La respuesta no es un array:', data);
       }
@@ -35,7 +33,6 @@ export default function FacturacionPage() {
   }, []);
 
   useEffect(() => {
-    // Verifica que facturas sea un array antes de intentar filtrarlo
     if (Array.isArray(facturas)) {
       const resultadosFiltrados = facturas.filter((factura) =>
         factura.nombreEscuela.toLowerCase().includes(search.toLowerCase())
@@ -46,21 +43,22 @@ export default function FacturacionPage() {
     }
   }, [search, facturas]);
 
-  // Función para manejar la navegación a la pantalla de detalles
   const handleDetalles = (facturaId: number) => {
     router.push(`/facturacion/${facturaId}`);
   };
 
   return (
     <div className="facturacion-container">
-      <h1>Facturación</h1>
-      <input
-        type="text"
-        placeholder="Buscar escuela"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="search-input"
-      />
+      <h1 className="title">Facturación</h1>
+      <div className="search-container">
+        <input
+          type="text"
+          placeholder="Buscar escuela"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="search-input"
+        />
+      </div>
 
       <table className="facturacion-table">
         <thead>
@@ -73,7 +71,6 @@ export default function FacturacionPage() {
           </tr>
         </thead>
         <tbody>
-          {/* Verificar que filteredFacturas sea un array antes de usar map */}
           {Array.isArray(filteredFacturas) && filteredFacturas.length > 0 ? (
             filteredFacturas.map((factura) => (
               <tr key={factura.id}>
@@ -84,7 +81,7 @@ export default function FacturacionPage() {
                 </td>
                 <td>{factura.gananciaTotal}</td>
                 <td>
-                  <button onClick={() => handleDetalles(factura.id)}>Detalles</button>
+                  <button className="details-button" onClick={() => handleDetalles(factura.id)}>Detalles</button>
                 </td>
               </tr>
             ))
@@ -95,6 +92,74 @@ export default function FacturacionPage() {
           )}
         </tbody>
       </table>
+
+      <style jsx>{`
+        .facturacion-container {
+          max-width: 800px;
+          margin: auto;
+          padding: 20px;
+          font-family: Arial, sans-serif;
+        }
+
+        .title {
+          font-size: 24px;
+          font-weight: bold;
+          color: #333;
+          text-align: center;
+          margin-bottom: 20px;
+        }
+
+        .search-container {
+          display: flex;
+          justify-content: center;
+          margin-bottom: 20px;
+        }
+
+        .search-input {
+          padding: 10px;
+          font-size: 16px;
+          width: 100%;
+          max-width: 300px;
+          border: 1px solid #ddd;
+          border-radius: 5px;
+        }
+
+        .facturacion-table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 20px;
+        }
+
+        .facturacion-table th,
+        .facturacion-table td {
+          padding: 12px 15px;
+          text-align: left;
+          border: 1px solid #ddd;
+        }
+
+        .facturacion-table th {
+          background-color: #f4f4f4;
+          font-weight: bold;
+        }
+
+        .facturacion-table tbody tr:nth-child(even) {
+          background-color: #f9f9f9;
+        }
+
+        .details-button {
+          background-color: #007bff;
+          color: white;
+          padding: 8px 12px;
+          border: none;
+          border-radius: 5px;
+          cursor: pointer;
+          font-size: 14px;
+        }
+
+        .details-button:hover {
+          background-color: #0056b3;
+        }
+      `}</style>
     </div>
   );
 }
