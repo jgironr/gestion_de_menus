@@ -108,3 +108,15 @@ model Menu {
   productos    MenuProducto[]
   complementos Complemento[]
 }
+
+model Factura {
+  id                Int      @id @default(autoincrement())
+  cantidadIngredientes Int
+  costoTotalCompra  Float
+  costoTotalVenta   Float
+  gananciaTotal     Float
+  escuela           String  
+  escuelaId         Int
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
