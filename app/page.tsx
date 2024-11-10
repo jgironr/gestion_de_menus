@@ -62,6 +62,9 @@ function HomePage() {
     }
   };
 
+
+
+  
   const fetchClientes = async () => {
     try {
       setLoading(true);
